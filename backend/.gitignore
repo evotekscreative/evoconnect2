@@ -1,0 +1,7 @@
+.env
+.env.production
+.env.local
+.env.*
+.idea
+uploads/*
+# Add other sensitive files/directories as needed   
