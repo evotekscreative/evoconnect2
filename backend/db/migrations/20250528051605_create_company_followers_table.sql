@@ -1,6 +1,17 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE company_followers (
+
+-- DROP terlebih dahulu jika constraint sudah ada
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'unique_company_follower'
+    ) THEN
+        ALTER TABLE company_followers DROP CONSTRAINT unique_company_follower;
+    END IF;
+END$$;
+
+CREATE TABLE IF NOT EXISTS company_followers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID NOT NULL,
     user_id UUID NOT NULL,
@@ -12,9 +23,9 @@ CREATE TABLE company_followers (
 
 -- Create unique constraint and indexes
 ALTER TABLE company_followers ADD CONSTRAINT unique_company_follower UNIQUE (company_id, user_id);
-CREATE INDEX idx_company_followers_company_id ON company_followers(company_id);
-CREATE INDEX idx_company_followers_user_id ON company_followers(user_id);
-CREATE INDEX idx_company_followers_created_at ON company_followers(created_at);
+CREATE INDEX IF NOT EXISTS idx_company_followers_company_id ON company_followers(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_followers_user_id ON company_followers(user_id);
+CREATE INDEX IF NOT EXISTS idx_company_followers_created_at ON company_followers(created_at);
 -- +goose StatementEnd
 
 -- +goose Down

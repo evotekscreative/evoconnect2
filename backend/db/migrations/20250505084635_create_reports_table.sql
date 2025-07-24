@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
     id UUID PRIMARY KEY,
     reporter_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     target_type TEXT NOT NULL CHECK (

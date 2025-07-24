@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS pending_posts (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
 );
+-- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin

@@ -49,7 +49,7 @@ type Company struct {
 	Type        string     `json:"type"`
 	Logo        string     `json:"logo"`
 	Tagline     string     `json:"tagline"`
-	Location    string     `json:"location"`
+	Location    string     `json:"location,omitempty"`
 	IsVerified  bool       `json:"is_verified"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`

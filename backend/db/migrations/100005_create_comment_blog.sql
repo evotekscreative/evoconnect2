@@ -1,7 +1,7 @@
 -- SQLBook: Code
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE comment_blog (
+CREATE TABLE IF NOT EXISTS comment_blog  (
     id UUID PRIMARY KEY,
     blog_id UUID NOT NULL REFERENCES tb_blog(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id),
@@ -12,8 +12,8 @@ CREATE TABLE comment_blog (
 );
 
 -- Add index for faster lookups
-CREATE INDEX idx_comment_blog_blog_id ON comment_blog(blog_id);
-CREATE INDEX idx_comment_blog_user_id ON comment_blog(user_id);
+CREATE INDEX IF NOT EXISTS idx_comment_blog_blog_id ON comment_blog(blog_id);
+CREATE INDEX IF NOT EXISTS idx_comment_blog_user_id ON comment_blog(user_id);
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
