@@ -1,6 +1,11 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE companies (
+
+-- DROP jika sudah ada (biar migration bisa diulang tanpa error)
+DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
+DROP FUNCTION IF EXISTS update_companies_updated_at;
+
+CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -20,11 +25,11 @@ CREATE TABLE companies (
 );
 
 -- Create indexes
-CREATE INDEX idx_companies_owner_id ON companies(owner_id);
-CREATE INDEX idx_companies_name ON companies(name);
-CREATE INDEX idx_companies_industry ON companies(industry);
-CREATE INDEX idx_companies_is_verified ON companies(is_verified);
-CREATE INDEX idx_companies_created_at ON companies(created_at);
+CREATE INDEX IF NOT EXISTS idx_companies_owner_id ON companies(owner_id);
+CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
+CREATE INDEX IF NOT EXISTS idx_companies_industry ON companies(industry);
+CREATE INDEX IF NOT EXISTS idx_companies_is_verified ON companies(is_verified);
+CREATE INDEX IF NOT EXISTS idx_companies_created_at ON companies(created_at);
 
 -- Create trigger function for updating updated_at
 CREATE OR REPLACE FUNCTION update_companies_updated_at()
@@ -40,11 +45,5 @@ CREATE TRIGGER update_companies_updated_at
     BEFORE UPDATE ON companies
     FOR EACH ROW
     EXECUTE FUNCTION update_companies_updated_at();
--- +goose StatementEnd
 
--- +goose Down
--- +goose StatementBegin
-DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
-DROP FUNCTION IF EXISTS update_companies_updated_at();
-DROP TABLE IF EXISTS companies;
 -- +goose StatementEnd

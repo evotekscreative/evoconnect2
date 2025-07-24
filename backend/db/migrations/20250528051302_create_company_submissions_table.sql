@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE company_submissions (
+CREATE TABLE IF NOT EXISTS company_submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -23,9 +23,9 @@ CREATE TABLE company_submissions (
 );
 
 -- Create indexes
-CREATE INDEX idx_company_submissions_user_id ON company_submissions(user_id);
-CREATE INDEX idx_company_submissions_status ON company_submissions(status);
-CREATE INDEX idx_company_submissions_created_at ON company_submissions(created_at);
+CREATE INDEX IF NOT EXISTS idx_company_submissions_user_id ON company_submissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_company_submissions_status ON company_submissions(status);
+CREATE INDEX IF NOT EXISTS idx_company_submissions_created_at ON company_submissions(created_at);
 
 -- Create trigger function for updating updated_at
 CREATE OR REPLACE FUNCTION update_company_submissions_updated_at()

@@ -13,6 +13,8 @@ CREATE TABLE group_join_requests (
 CREATE INDEX idx_group_join_requests_group_id ON group_join_requests(group_id);
 CREATE INDEX idx_group_join_requests_user_id ON group_join_requests(user_id);
 CREATE INDEX idx_group_join_requests_status ON group_join_requests(status);
+-- +goose StatementEnd
+
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE group_join_requests;
