@@ -1,11 +1,15 @@
-import { Link, useNavigate } from "react-router-dom";
-import { Bell, User, Briefcase, Heart, Trash2 } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // ✅ Tambahkan useLocation
+import { Bell, User, Briefcase, Heart } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import Pusher from "pusher-js";
 
 const NotificationDropdown = () => {
-        const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+  const location = useLocation(); // ✅ Dapatkan path saat ini
 
+  // ✅ Jangan tampilkan komponen jika berada di halaman admin
+  if (location.pathname.startsWith("/admin")) return null;
+
+  const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -13,8 +17,10 @@ const NotificationDropdown = () => {
   const [pusherChannel, setPusherChannel] = useState(null);
 
   const bellRef = useRef(null);
-    const dropdownRef = useRef(null);
+  const dropdownRef = useRef(null);
   const [isBellOpen, setIsBellOpen] = useState(false);
+
+  // ... kode lainnya tetap sama tanpa perubahan
 
   const getUserIdFromToken = (token) => {
     if (!token) return null;
