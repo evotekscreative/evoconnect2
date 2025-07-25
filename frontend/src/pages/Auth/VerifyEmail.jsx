@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 
 const VerifyEmail = () => {
@@ -127,12 +127,17 @@ const VerifyEmail = () => {
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
           Verify Your Email
         </h2>
-
-        <p className="text-center text-gray-600 mb-6">
+        {
+          email ? (
+            <p className="text-center text-gray-600 mb-6">
           We've sent a verification code to{" "}
           <span className="font-semibold">{email}</span>
         </p>
-
+          ) : (
+            <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline" onClick={localStorage.clear("token")}>login ulang!</Link></p>
+            // <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline">login ulang!</Link></p>
+          )
+        }
         {(submitted || resendMessage) && (
           <div className={`text-center font-medium mb-4 ${messageColor}`}>
             {message || resendMessage}

@@ -42,6 +42,13 @@ const JobApplicationModal = ({ onClose, jobVacancyId, onApplied, setHasApplied }
         fetchUserCV();
     }, []);
 
+    const handleContactChange = (field, value) => {
+    setUserData(prev => ({
+        ...prev,
+        [field]: value
+    }));
+};
+
     const fetchUserCV = async () => {
         const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
         const token = localStorage.getItem("token");
@@ -140,6 +147,8 @@ const JobApplicationModal = ({ onClose, jobVacancyId, onApplied, setHasApplied }
                 if (onApplied) onApplied();
                 else onClose();
             }
+
+        console.log('Submitting userData:', userData);  
         } catch (error) {
             if (
                 error.response &&
@@ -171,7 +180,7 @@ const JobApplicationModal = ({ onClose, jobVacancyId, onApplied, setHasApplied }
     const renderStep = () => {
         switch (currentStep) {
             case 'contact':
-                return <ContactInfo userData={userData} onNext={handleNext} isSubmitting={isSubmitting} onClose={handleRequestClose} />;
+                return <ContactInfo userData={userData} onNext={handleNext} isSubmitting={isSubmitting} onClose={handleRequestClose} onContactChange={handleContactChange} />;
             case 'resume':
                 return (
                     <ResumeUpload

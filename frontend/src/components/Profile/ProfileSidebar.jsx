@@ -69,7 +69,7 @@ export default function ProfileSidebar({
             <span className="flex items-center gap-2 text-base">
               <Bookmark size={18} /> Job Saved
             </span>
-            <span className="font-bold text-lg">120</span>
+            <span className="font-bold text-lg">{user.company || 0}</span>
           </Link>
         </div>
         <button className="text-blue-600 text-base mt-5">Log Out</button>

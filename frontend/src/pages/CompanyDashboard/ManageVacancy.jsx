@@ -307,6 +307,21 @@ export default function ManageVacancy() {
       return;
     }
 
+        if((formData.title || "") .length < 5){
+      window.alert("title must be more than 5 !")
+      return;
+    }
+
+    if((formData?.description || "").length < 50){
+      window.alert("Description must be more than 50 !")
+      return;
+    }
+
+    if((formData?.requirements || "").length < 20){
+      window.alert("Requirements must be more than 20 !")
+      return;
+    }
+
     setLoading(true);
 
     try {

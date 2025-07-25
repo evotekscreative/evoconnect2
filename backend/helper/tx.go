@@ -6,21 +6,19 @@ import (
 )
 
 func CommitOrRollback(tx *sql.Tx) {
-	err := recover()
-	if err != nil {
+	if r := recover(); r != nil {
 		// Log error sebelum rollback
-		fmt.Printf("Transaction error, rolling back: %v\n", err)
+		fmt.Printf("Transaction error, rolling back: %v\n", r)
 
 		errorRollback := tx.Rollback()
 		if errorRollback != nil {
 			fmt.Printf("Rollback error: %v\n", errorRollback)
 		}
-		panic(err)
+		panic(r)
 	} else {
-		errorCommit := tx.Commit()
-		if errorCommit != nil {
-			fmt.Printf("Commit error: %v\n", errorCommit)
-			PanicIfError(errorCommit)
+		if err := tx.Commit(); err != nil {
+			fmt.Printf("Commit error: %v\n", err)
+			PanicIfError(err)
 		}
 	}
 }

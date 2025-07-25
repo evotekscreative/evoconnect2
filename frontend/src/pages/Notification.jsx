@@ -236,7 +236,7 @@ const NotificationPage = () => {
       setProcessingAction(notification.id);
 
       // Panggil API untuk menerima permintaan koneksi
-      await axios.put(
+      const res = await axios.put(
         `${apiUrl}/api/connections/requests/${notification.referenceId}/accept`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -245,7 +245,7 @@ const NotificationPage = () => {
       // Update status koneksi untuk notifikasi ini
       setConnectionStatus((prev) => ({
         ...prev,
-        [notification.id]: "accepted",
+        [notification.id]:res.data.connectionStatus || "accepted",
       }));
 
       // Update notifikasi dengan status koneksi baru
@@ -283,7 +283,7 @@ const NotificationPage = () => {
       setProcessingAction(notification.id);
 
       // Panggil API untuk menolak permintaan koneksi
-      await axios.put(
+      const res = await axios.put(
         `${apiUrl}/api/connections/requests/${notification.referenceId}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -292,7 +292,7 @@ const NotificationPage = () => {
       // Update status koneksi untuk notifikasi ini
       setConnectionStatus((prev) => ({
         ...prev,
-        [notification.id]: "rejected",
+        [notification.id]:res.data.connectionStatus || "rejected",
       }));
 
       // Update notifikasi dengan status koneksi baru
@@ -943,7 +943,11 @@ const NotificationPage = () => {
                                     handleAcceptConnection(n);
                                   }}
                                   disabled={processingAction === n.id}
-                                  className="flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50"
+                                  className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50 ${
+                                    n.connectionStatus === "accepted"
+                                      ? "hidden"
+                                      : ""
+                                  }`}
                                 >
                                   {processingAction === n.id ? (
                                     "Processing..."
@@ -960,7 +964,11 @@ const NotificationPage = () => {
                                     handleRejectConnection(n);
                                   }}
                                   disabled={processingAction === n.id}
-                                  className="flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50"
+                                  className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50 ${
+                                    n.connectionStatus === "rejected"
+                                      ? "hidden"
+                                      : ""
+                                  }`}
                                 >
                                   {processingAction === n.id ? (
                                     "Processing..."

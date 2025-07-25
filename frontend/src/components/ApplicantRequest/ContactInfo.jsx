@@ -52,6 +52,8 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         if (onContactChange) {
             onContactChange('linkedin', contactData.linkedin);
         }
+        console.log("phone",contactData.phone);
+        console.log("address",contactData.address);
         onNext();
     };
 
@@ -103,7 +105,9 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
                                     type="text"
                                     className="p-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 w-full"
                                     value={contactData.phone}
-                                    onChange={e => setContactData(prev => ({ ...prev, phone: e.target.value }))}
+                                    onChange={e => {setContactData(prev => ({ ...prev, phone: e.target.value }))
+                                    onContactChange && onContactChange("phone",e.target.value)
+                                }}
                                     placeholder="Enter your phone number"
                                     required
                                 />
@@ -133,7 +137,9 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
                                     type="text"
                                     className="p-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 w-full"
                                     value={contactData.address}
-                                    onChange={e => setContactData(prev => ({ ...prev, address: e.target.value }))}
+                                    onChange={e => {setContactData(prev => ({ ...prev, address: e.target.value }))
+                                    onContactChange && onContactChange("address",e.target.value)
+                                }}
                                     placeholder="Enter your address"
                                     required
                                 />
