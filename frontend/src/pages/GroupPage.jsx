@@ -1927,7 +1927,7 @@ export default function GroupPage() {
 
       showAlert("success", "Post created successfully");
       fetchGroupPosts();
-      fetchGroupPosts;
+      fetchPinnedPosts();
     } catch (error) {
       console.error("Error creating post:", error);
       showAlert("error", "Failed to create post");
@@ -2316,7 +2316,12 @@ export default function GroupPage() {
         setPosts(posts.filter((post) => post.id !== postId));
 
         // Set postingan yang dipin
-        setPinnedPosts([response.data.data]);
+        setPinnedPosts((prev) => {
+  // Hindari duplikasi
+        const newPinned = response.data.data;
+        const exists = prev.some((p) => p.id === newPinned.id);
+        return exists ? prev : [newPinned, ...prev];
+      });
 
         handleClosePostOptions();
       }
@@ -2326,37 +2331,40 @@ export default function GroupPage() {
     }
   };
   const handleUnpinPost = async (postId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${apiUrl}/api/posts/${postId}/unpin`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        showAlert("success", "Post unpinned successfully");
-
-        // Tambahkan postingan yang diunpin ke daftar postingan biasa
-        setPosts([response.data.data, ...posts]);
-
-        // Hapus dari daftar pinned posts
-        setPinnedPosts([]);
-
-        handleClosePostOptions();
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${apiUrl}/api/posts/${postId}/unpin`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    } catch (error) {
-      console.error("Error unpinning post:", error);
-      showAlert(
-        "error",
-        error.response?.data?.message || "Failed to unpin post"
+    );
+
+    if (response.status === 200) {
+      showAlert("success", "Post unpinned successfully");
+
+      const unpinned = response.data.data;
+
+      // ✅ Cegah duplikat di recent posts
+      setPosts((prev) =>
+        prev.some((p) => p.id === unpinned.id)
+          ? prev
+          : [unpinned, ...prev]
       );
+
+      // Hapus dari daftar pinned posts
+      setPinnedPosts((prev) => prev.filter((p) => p.id !== postId));
+
+      handleClosePostOptions();
     }
-  };
+  } catch (error) {
+    console.error("Error unpinning post:", error);
+    showAlert("error", error.response?.data?.message || "Failed to unpin post");
+  }
+};
 
   const fetchMemberPendingPosts = async () => {
     if (!isGroupMember) return;
@@ -3360,7 +3368,9 @@ export default function GroupPage() {
                       No posts yet
                     </div>
                   ) : (
-                    posts.map(renderPost)
+                    posts
+                    .filter((post) => !pinnedPosts.some((pinned) => pinned.id === post.id))
+                    .map(renderPost)
                   )}
                 </div>
               </div>
