@@ -52,8 +52,9 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         if (onContactChange) {
             onContactChange('linkedin', contactData.linkedin);
         }
-        console.log("phone",contactData.phone);
-        console.log("address",contactData.address);
+        if((contactData.phone || "").length < 10){
+            window.alert("Phone number mus be at least 10 characters!")
+        }
         onNext();
     };
 

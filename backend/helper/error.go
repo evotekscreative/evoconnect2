@@ -8,6 +8,7 @@ func PanicIfError(err error) {
 	if err != nil {
 		log.Printf("ERROR DETAILS: %v", err)
 		log.Printf("ERROR TYPE: %T", err)
+		log.Printf("PANIC ERROR TERJADI: %+v\n", err)
 		panic(map[string]interface{}{
 			"error":   err.Error(),
 			"message": "Internal server error occurred",
