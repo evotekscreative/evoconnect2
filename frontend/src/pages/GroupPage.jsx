@@ -4014,14 +4014,12 @@ export default function GroupPage() {
                       <h3 className="mb-3 text-lg font-medium">Post Options</h3>
 
                       {/* Options for current user's post */}
-                      {posts.find((p) => p.id === selectedPostId)?.user?.id ===
-                        currentUserId && (
+                      {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id === currentUserId && (
                         <>
                           {/* Admin can pin/unpin any post including their own */}
                           {isCurrentUserAdmin && (
                             <>
-                              {posts.find((p) => p.id === selectedPostId)
-                                ?.is_pinned ? (
+                              {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.is_pinned ? (
                                 <button
                                   className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                                   onClick={() =>
@@ -4094,11 +4092,9 @@ export default function GroupPage() {
 
                       {/* Options for admin viewing other users' posts */}
                       {isCurrentUserAdmin &&
-                        posts.find((p) => p.id === selectedPostId)?.user?.id !==
-                          currentUserId && (
+                        [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id !== currentUserId && (
                           <>
-                            {posts.find((p) => p.id === selectedPostId)
-                              ?.is_pinned ? (
+                            {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.is_pinned ? (
                               <button
                                 className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                                 onClick={() => handleUnpinPost(selectedPostId)}
@@ -4154,20 +4150,18 @@ export default function GroupPage() {
 
                       {/* Options for regular users viewing others' posts */}
                       {!isCurrentUserAdmin &&
-                        posts.find((p) => p.id === selectedPostId)?.user?.id !==
+                        [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id !==
                           currentUserId && (
                           <>
                             <button
                               className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                               onClick={() => {
-                                // Handle connect with user
-                                // You'll need to implement this function
-                                handleConnectWithUser(
-                                  posts.find((p) => p.id === selectedPostId)
-                                    .user.id
-                                );
-                                handleClosePostOptions();
-                              }}
+                              const selectedPost = [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId);
+                              if (selectedPost && selectedPost.user.id !== currentUserId) {
+                                handleConnectWithUser(selectedPost.user.id);
+                              }
+                              handleClosePostOptions();
+                            }}
                             >
                               <UserPlus size={16} className="mr-2" />
                               Connect With User
