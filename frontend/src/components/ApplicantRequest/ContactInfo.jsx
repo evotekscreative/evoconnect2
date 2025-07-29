@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, HelpCircle, X } from 'lucide-react';
 import ConfirmationDialog from '../../components/ApplicantRequest/ConfirmationDialog.jsx';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange }) => {
     const [contactData, setContactData] = useState({
         profileImage: "https://via.placeholder.com/80",
-        title: "Software Engineer",
+        title: "",
         name: "",
         headline: "",
         location: "",
@@ -16,6 +18,28 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         linkedin: ""
     });
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [isLoadingJobTitle, setIsLoadingJobTitle] = useState(false);
+    const { jobId} = useParams();
+    
+    useEffect(() =>{
+        // const jobId = contactData.jobId || userData.jobId;
+        if(!jobId){
+            console.warn("tidak ada jobId yang ditemukan");
+            return;
+        }
+
+        setIsLoadingJobTitle(true);
+
+        axios.get(`${import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000"}/api/job-details/${jobId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
+        .then((response) => {
+            const jobTitle = response.data.data.title;
+            setContactData(prev => ({
+                ...prev,
+                title:jobTitle
+            }))
+        })
+    },[jobId])
+
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
@@ -67,7 +91,7 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mt-10 max-h-[90vh] flex flex-col animate-slide-down overflow-y-auto max-h-[80vh]">
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-2">
-                        <h1 className="text-xl font-semibold text-gray-800">Apply for {contactData.title}</h1>
+                        <h1 className="text-xl font-semibold text-gray-800">Apply for {contactData.title ? contactData.title :  "tidak ada Job Title"}</h1>
                         <button
                             onClick={onClose}
                             className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
