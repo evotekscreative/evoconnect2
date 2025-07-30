@@ -114,7 +114,7 @@ const SimpleApply = ({ showModal, setShowModal, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    if (isSubmitting) return;
     // Check if company is selected
     if (!formData.companyId) {
       alert("Please select a company first");
@@ -150,7 +150,7 @@ const SimpleApply = ({ showModal, setShowModal, onSubmit }) => {
         status: 'active' // Default status for new job postings
       };
 
-       setShowModal(false);
+      setShowModal(false);
 
       // Make API request
       const response = await axios.post(

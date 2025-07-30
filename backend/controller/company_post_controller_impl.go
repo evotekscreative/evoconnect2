@@ -57,7 +57,7 @@ func (controller *CompanyPostControllerImpl) Create(writer http.ResponseWriter, 
 	response := controller.CompanyPostService.Create(request.Context(), userId, createRequest, files)
 
 	webResponse := web.WebResponse{
-		Code:   200,
+		Code:   201,
 		Status: "OK",
 		Data:   response,
 	}

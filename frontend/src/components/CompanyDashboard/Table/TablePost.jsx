@@ -71,85 +71,77 @@ const PostModal = ({ isOpen, onClose, post = null, companyId, onRefresh }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.content.trim()) {
-      toast.error("Post content is required");
-      return;
-    }
+  e.preventDefault();
 
-    setIsSubmitting(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("content", formData.content);
-      formDataToSend.append("visibility", formData.visibility);
-      formDataToSend.append("is_announcement", formData.is_announcement);
+  if (isSubmitting) return;
 
-      if (post) {
-        // Update existing post
-        formDataToSend.append(
-          "existing_images",
-          JSON.stringify(existingImages)
-        );
-        formDataToSend.append("removed_images", JSON.stringify(removedImages));
+  if (!formData.content.trim()) {
+    toast.error("Post content is required");
+    return;
+  }
 
-        images.forEach((image) => {
-          formDataToSend.append("new_images", image);
-        });
+  setIsSubmitting(true);
+  try {
+    const formDataToSend = new FormData();
+    formDataToSend.append("content", formData.content);
+    formDataToSend.append("visibility", formData.visibility);
+    formDataToSend.append("is_announcement", formData.is_announcement);
 
-        const response = await fetch(
-          `${BASE_URL}/api/company-posts/${post.id}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: formDataToSend,
-          }
-        );
+    if (post) {
+      // Update existing post
+      formDataToSend.append("existing_images", JSON.stringify(existingImages));
+      formDataToSend.append("removed_images", JSON.stringify(removedImages));
+      images.forEach((image) => {
+        formDataToSend.append("new_images", image);
+      });
 
-        const result = await response.json();
-        if (response.ok && result.code === 200) {
-          toast.success("Post updated successfully!");
-          onRefresh();
-          onClose();
-        } else {
-          throw new Error(result.message || "Failed to update post");
-        }
+      const response = await fetch(`${BASE_URL}/api/company-posts/${post.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formDataToSend,
+      });
+
+      const result = await response.json();
+      if (response.ok && result.code === 200) {
+        toast.success("Post updated successfully!");
+        await onRefresh(); // ⬅️ TUNGGU post list diperbarui
+        onClose(); // ⬅️ Baru tutup modal
       } else {
-        // Create new post
-        formDataToSend.append("company_id", companyId);
-
-        images.forEach((image) => {
-          formDataToSend.append("images", image);
-        });
-
-        const response = await fetch(
-          `${BASE_URL}/api/companies/${companyId}/posts`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: formDataToSend,
-          }
-        );
-
-        const result = await response.json();
-        if (response.ok && result.code === 201) {
-          toast.success("Post created successfully!");
-          onRefresh();
-          onClose();
-        } else {
-          throw new Error(result.message || "Failed to create post");
-        }
+        throw new Error(result.message || "Failed to update post");
       }
-    } catch (error) {
-      console.error("Error saving post:", error);
-      toast.error(error.message || "Failed to save post");
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      // Create new post
+      formDataToSend.append("company_id", companyId);
+      images.forEach((image) => {
+        formDataToSend.append("images", image);
+      });
+
+      const response = await fetch(`${BASE_URL}/api/companies/${companyId}/posts`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formDataToSend,
+      });
+
+      const result = await response.json();
+      if (response.ok && result.code === 201) {
+        toast.success("Post created successfully!");
+        await onRefresh(); // ⬅️ Tunggu fetchPosts selesai
+        onClose(); // ⬅️ Baru tutup modal
+      } else {
+        throw new Error(result.message || "Failed to create post");
+      }
     }
-  };
+  } catch (error) {
+    console.error("Error saving post:", error);
+    toast.error(error.message || "Failed to save post");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (!isOpen) return null;
 

@@ -95,6 +95,7 @@ const NotificationDropdown = () => {
             actor: n.actor,
             status: n.status,
             read: n.status === "read",
+            created_at: n.created_at,
           }))
         : [];
       
@@ -193,6 +194,7 @@ const NotificationDropdown = () => {
         actor: data.actor,
         status: data.status,
         read: data.status === "read",
+        created_at: data.created_at,
       };
 
       setNotifications(prev => [newNotification, ...prev]);
@@ -216,7 +218,21 @@ const NotificationDropdown = () => {
     fetchNotifications();
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setNotifications(prev =>
+      prev.map(n => ({
+        ...n,
+        time: formatTimeAgo(n.created_at),
+      }))
+    );
+  }, 60000); // 60 detik
+
+  return () => clearInterval(interval); // Bersihkan timer saat komponen unmount
+}, []);
+
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       // Jika dropdown terbuka dan klik terjadi di luar bell dan dropdown
       if (isBellOpen && 
