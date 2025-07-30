@@ -319,6 +319,7 @@ export default function SocialNetworkFeed() {
 
   const [randomJobs, setRandomJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const [postCompany, setPostCompany] = useState([]);
 
   const fetchRandomJobs = async () => {
     try {
@@ -384,6 +385,136 @@ export default function SocialNetworkFeed() {
       setLoadingSuggested(false);
     }
   };
+
+  // Tambahkan fungsi fetchCompanyPosts di dekat fungsi fetchPosts
+  const fetchCompanyPosts = async () => {
+    try {
+      const userToken = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:3000/api/company-posts",
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
+      if (response.data?.data) {
+        // Sesuaikan dengan struktur response.
+        // Misalnya, jika response.data.data.posts adalah array posting perusahaan:
+        const companyPosts = response.data.data.posts || response.data.data;
+        // Format data jika perlu, misalnya tambahkan properti penanda
+        // setPostCompany(companyPosts)
+        const formattedCompanyPosts = companyPosts.map((post) => ({
+          id: post.id,
+          content: post.content,
+          images:
+            post.images?.map((img) =>
+              img.startsWith("http") ? img : `${apiUrl}/${img}`
+            ) || [],
+          user: post.creator || {
+            id: post.creator_id,
+            name: "Unknown Creator",
+            initials: "UC",
+            username: "unknown_creator",
+          },
+          group: post.group || null,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          created_at: post.created_at,
+          visibility: post.visibility || "public",
+          isLiked: post.is_liked || false,
+          isCompanyPost: true,
+        }));
+        console.log()
+        setPostCompany(formattedCompanyPosts);
+        return formattedCompanyPosts;
+      }
+    } catch (error) {
+      console.error("Failed fetching company posts:", error);
+    }
+    return [];
+  };
+
+  const fetchAllPosts = useCallback(
+    async (pageNum = 0, append = false) => {
+      try {
+        if (pageNum === 0) {
+          setLoadingPosts(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+
+        const userToken = localStorage.getItem("token");
+        const limit = 10; // Batasi jumlah posting per panggilan
+        const offset = pageNum * limit;
+
+        // Fetch posting umum
+        const response = await axios.get(
+          `${apiUrl}/api/posts?limit=${limit}&offset=${offset}`,
+          { headers: { Authorization: `Bearer ${userToken}` } }
+        );
+        let formattedPosts = [];
+        if (response.data?.data) {
+          formattedPosts = response.data.data.map((post) => ({
+            id: post.id,
+            content: post.content,
+            images:
+              post.images?.map((img) =>
+                img.startsWith("http") ? img : `${apiUrl}/${img}`
+              ) || [],
+            user: post.user || {
+              id: post.user_id,
+              name: "Unknown User",
+              initials: "UU",
+              username: "unknown",
+            },
+            group: post.group || null,
+            likes_count: post.likes_count || 0,
+            comments_count: post.comments_count || 0,
+            created_at: post.created_at,
+            visibility: post.visibility || "public",
+            isLiked: post.is_liked || false,
+            isCompanyPost: post.isCompanyPost || false,
+          }));
+        }
+
+        // Fetch posting dari perusahaan
+        const companyPosts = await fetchCompanyPosts();
+
+        // Gabungkan kedua array posting dan urutkan berdasarkan waktu (misalnya created_at)
+        const allPosts = [...formattedPosts, ...companyPosts].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+
+        if (append) {
+          setPosts((prevPosts) => [...prevPosts, ...allPosts]);
+        } else {
+          setPosts(allPosts);
+        }
+
+        // Update hasMore berdasarkan jumlah data yang diterima
+        if (formattedPosts.length < limit && companyPosts.length === 0) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
+
+        if (pageNum > 0) {
+          setPage(pageNum);
+        }
+      } catch (err) {
+        console.error("Failed to fetch posts:", err);
+        setError("Failed to load posts. Please try again later.");
+      } finally {
+        setLoadingPosts(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [apiUrl]
+  );
+
+  useEffect(() => {
+    // Fetch posting pertama kali
+    fetchAllPosts(0, false);
+  }, [fetchAllPosts]);
 
   const fetchProfileViews = async () => {
     try {
@@ -1495,9 +1626,10 @@ export default function SocialNetworkFeed() {
     }));
   };
 
-  const handleLikePost = async (postId, isCurrentlyLiked) => {
+  const handleLikePost = async (postId, isCurrentlyLiked,isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost ? `/api/company-posts/${postId}/like` : `/api/post-actions/${postId}/like`
 
       // Optimistic UI update
       setPosts((prevPosts) =>
@@ -1517,12 +1649,12 @@ export default function SocialNetworkFeed() {
 
       // Send request to backend
       if (isCurrentlyLiked) {
-        await axios.delete(`${apiUrl}/api/post-actions/${postId}/like`, {
+        await axios.delete(`${apiUrl}${endPoint}`, {
           headers: { Authorization: `Bearer ${userToken}` },
         });
       } else {
         await axios.post(
-          `${apiUrl}/api/post-actions/${postId}/like`,
+          `${apiUrl}${endPoint}`,
           {},
           { headers: { Authorization: `Bearer ${userToken}` } }
         );
@@ -1550,10 +1682,11 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeletePost = async (postId) => {
+  const handleDeletePost = async (postId,isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
-      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
+      const endPoint = isCompanyPost ? `/api/company-posts/${postId}` : `/api/posts/${postId}`;
+      await axios.delete(`${apiUrl}${endPoint}`, {
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
@@ -3116,7 +3249,7 @@ export default function SocialNetworkFeed() {
                             ? "text-blue-600 bg-blue-50"
                             : "text-black hover:bg-gray-100"
                         }`}
-                        onClick={() => handleLikePost(post.id, post.isLiked)}
+                        onClick={() => handleLikePost(post.id, post.isLiked,post.isCompanyPost)}
                       >
                         <ThumbsUp size={14} className="mr-2" />
                         Like
@@ -3124,7 +3257,7 @@ export default function SocialNetworkFeed() {
 
                       <button
                         className="flex items-center justify-center w-1/3 py-2 text-black rounded-lg hover:bg-gray-100"
-                        onClick={() => openCommentModal(post.id)}
+                        onClick={() => openCommentModal(post.id,post.isCompanyPost)}
                       >
                         <MessageCircle size={14} className="mr-2" />
                         Comment

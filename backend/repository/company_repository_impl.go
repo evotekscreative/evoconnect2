@@ -33,8 +33,8 @@ func (repository *CompanyRepositoryImpl) Create(ctx context.Context, tx *sql.Tx,
 func (repository *CompanyRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, company domain.Company) domain.Company {
 	SQL := `UPDATE companies SET 
             name = $1, linkedin_url = $2, website = $3, industry = $4, size = $5, 
-            type = $6, logo = $7, tagline = $8 = $9, updated_at = $10
-            WHERE id = $11`
+            type = $6, logo = $7, tagline = $8, updated_at = $9
+            WHERE id = $10`
 
 	_, err := tx.ExecContext(ctx, SQL,
 		company.Name, company.LinkedinUrl, company.Website, company.Industry, company.Size,

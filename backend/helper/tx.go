@@ -14,11 +14,15 @@ func CommitOrRollback(tx *sql.Tx) {
 		if errorRollback != nil {
 			fmt.Printf("Rollback error: %v\n", errorRollback)
 		}
-		panic(r)
+		// panic(r)
+		return
 	} else {
 		if err := tx.Commit(); err != nil {
 			fmt.Printf("Commit error: %v\n", err)
-			PanicIfError(err)
+			if err := tx.Rollback(); err != nil {
+				fmt.Printf("Rollback error: %v\n",err)
+			}
+
 		}
 	}
 }

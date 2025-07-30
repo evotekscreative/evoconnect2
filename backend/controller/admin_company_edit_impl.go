@@ -5,6 +5,7 @@ import (
 	"evoconnect/backend/helper"
 	"evoconnect/backend/model/web"
 	"evoconnect/backend/service"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -101,7 +102,9 @@ func (controller *AdminCompanyEditControllerImpl) GetEditRequestDetail(writer ht
 }
 
 func (controller *AdminCompanyEditControllerImpl) ReviewEditRequest(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	log.Printf("DEBUG: REVIEW EDIT REQUEST TRIGGRED\n")
 	requestIdStr := params.ByName("requestId")
+	log.Printf("DEBUG: REQUEST ID: %s\n", requestIdStr)
 	requestId, err := uuid.Parse(requestIdStr)
 	if err != nil {
 		helper.WriteJSON(writer, http.StatusBadRequest, web.APIResponse{
@@ -113,6 +116,7 @@ func (controller *AdminCompanyEditControllerImpl) ReviewEditRequest(writer http.
 	}
 
 	reviewerIdStr := request.Context().Value("admin_id").(string)
+	log.Printf("DEBUG: REVIEWER ID: %s\n",reviewerIdStr)
 	reviewerId, err := uuid.Parse(reviewerIdStr)
 	if err != nil {
 		helper.WriteJSON(writer, http.StatusBadRequest, web.APIResponse{
@@ -126,6 +130,7 @@ func (controller *AdminCompanyEditControllerImpl) ReviewEditRequest(writer http.
 	var reviewRequest web.ReviewCompanyEditRequestRequest
 	err = json.NewDecoder(request.Body).Decode(&reviewRequest)
 	if err != nil {
+		log.Printf("ERR:FAILED TO DECODE REQUEST BODY: %v\n",err)
 		helper.WriteJSON(writer, http.StatusBadRequest, web.APIResponse{
 			Code:   http.StatusBadRequest,
 			Status: "BAD_REQUEST",
@@ -133,6 +138,8 @@ func (controller *AdminCompanyEditControllerImpl) ReviewEditRequest(writer http.
 		})
 		return
 	}
+
+	log.Printf("DEBUG: reviewRequest received: %+v\n", reviewRequest)
 
 	result := controller.CompanyManagementService.ReviewEditRequest(request.Context(), requestId, reviewerId, reviewRequest)
 
