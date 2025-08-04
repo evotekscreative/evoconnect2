@@ -1,4 +1,5 @@
 import { Users, Eye, Bookmark } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 export default function ProfileSidebar({
@@ -9,7 +10,35 @@ export default function ProfileSidebar({
   profileViews,
   onShowContactModal,
   socialPlatforms,
+
 }) {
+    const [savedJobs, setSavedJobs] = useState([]);
+    const BASE_URL = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+
+    const fetchSavedJobs = async () => {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/api/saved-jobs?page=1&pageSize=10`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.code === 200) {
+        setSavedJobs(data.data.jobs || []);
+      }
+    } catch (error) {
+      console.error("Error fetching saved jobs:", error);
+    }
+  };
+useEffect(() =>{
+  fetchSavedJobs();
+})
   return (
     <div className="w-full space-y-4">
       <div className="bg-white rounded-lg shadow-md p-6 text-center mb-4">
@@ -69,7 +98,7 @@ export default function ProfileSidebar({
             <span className="flex items-center gap-2 text-base">
               <Bookmark size={18} /> Job Saved
             </span>
-            <span className="font-bold text-lg">{user.company || 0}</span>
+            <span className="font-bold text-lg">{savedJobs.length || 0}</span>
           </Link>
         </div>
         <button className="text-blue-600 text-base mt-5">Log Out</button>

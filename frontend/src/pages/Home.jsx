@@ -435,7 +435,7 @@ export default function SocialNetworkFeed() {
   };
 
   const fetchAllPosts = useCallback(
-    async (pageNum = 0, append = false) => {
+    async (pageNum = 0, append = false, isCompanyPost) => {
       try {
         if (pageNum === 0) {
           setLoadingPosts(true);
@@ -448,42 +448,49 @@ export default function SocialNetworkFeed() {
         const offset = pageNum * limit;
 
         // Fetch posting umum
+        const endPoint = isCompanyPost ? `/api/company-posts` : `/api/posts`;
         const response = await axios.get(
-          `${apiUrl}/api/posts?limit=${limit}&offset=${offset}`,
+          `${apiUrl}${endPoint}?limit=${limit}&offset=${offset}`,
           { headers: { Authorization: `Bearer ${userToken}` } }
         );
+        console.log("Raw /api/posts:", response.data.data);
         let formattedPosts = [];
         if (response.data?.data) {
-          formattedPosts = response.data.data.map((post) => ({
-            id: post.id,
-            content: post.content,
-            images:
-              post.images?.map((img) =>
-                img.startsWith("http") ? img : `${apiUrl}/${img}`
-              ) || [],
-            user: post.user || {
-              id: post.user_id,
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-            },
-            group: post.group || null,
-            likes_count: post.likes_count || 0,
-            comments_count: post.comments_count || 0,
-            created_at: post.created_at,
-            visibility: post.visibility || "public",
-            isLiked: post.is_liked || false,
-            isCompanyPost: post.isCompanyPost || false,
-          }));
+          formattedPosts = response.data.data
+            .filter((post) => !post.isCompanyPost)
+            .map((post) => ({
+              id: post.id,
+              content: post.content,
+              images:
+                post.images?.map((img) =>
+                  img.startsWith("http") ? img : `${apiUrl}/${img}`
+                ) || [],
+              user: post.user || {
+                id: post.user_id,
+                name: "Unknown User",
+                initials: "UU",
+                username: "unknown",
+              },
+              group: post.group || null,
+              likes_count: post.likes_count || 0,
+              comments_count: post.comments_count || 0,
+              created_at: post.created_at,
+              visibility: post.visibility || "public",
+              isLiked: post.is_liked || false,
+              isCompanyPost: post.isCompanyPost || false,
+            }));
         }
 
         // Fetch posting dari perusahaan
         const companyPosts = await fetchCompanyPosts();
+        //
+        let allPosts = [];
 
-        // Gabungkan kedua array posting dan urutkan berdasarkan waktu (misalnya created_at)
-        const allPosts = [...formattedPosts, ...companyPosts].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
+        if (isCompanyPost) {
+          allPosts = companyPosts;
+        } else {
+          allPosts = formattedPosts;
+        }
 
         if (append) {
           setPosts((prevPosts) => [...prevPosts, ...allPosts]);
@@ -899,26 +906,28 @@ export default function SocialNetworkFeed() {
 
         if (response.data?.data) {
           // Transformasi data setelah fetch
-          const formattedPosts = response.data.data.map((post) => ({
-            id: post.id,
-            content: post.content,
-            images:
-              post.images?.map((img) =>
-                img.startsWith("http") ? img : `${apiUrl}/${img}`
-              ) || [],
-            user: post.user || {
-              id: post.user_id,
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-            },
-            group: post.group || null,
-            likes_count: post.likes_count || 0,
-            comments_count: post.comments_count || 0,
-            created_at: post.created_at, // Jangan beri fallback
-            visibility: post.visibility || "public",
-            isLiked: post.is_liked || false,
-          }));
+          const formattedPosts = response.data.data
+            .filter((post) => !post.isCompanyPost)
+            .map((post) => ({
+              id: post.id,
+              content: post.content,
+              images:
+                post.images?.map((img) =>
+                  img.startsWith("http") ? img : `${apiUrl}/${img}`
+                ) || [],
+              user: post.user || {
+                id: post.user_id,
+                name: "Unknown User",
+                initials: "UU",
+                username: "unknown",
+              },
+              group: post.group || null,
+              likes_count: post.likes_count || 0,
+              comments_count: post.comments_count || 0,
+              created_at: post.created_at, // Jangan beri fallback
+              visibility: post.visibility || "public",
+              isLiked: post.is_liked || false,
+            }));
 
           // Update state posts
           // Update state posts
@@ -1204,13 +1213,14 @@ export default function SocialNetworkFeed() {
 
       const userToken = localStorage.getItem("token");
       const endpoint = isCompanyPost
-        ? `/api/company-post-comments/${postId}`
+        ? `/api/company-posts/${postId}/comments`
         : `/api/post-comments/${postId}`;
       const response = await axios.get(
         `${apiUrl}${endpoint}?limit=10&offset=0&includeReplies=true`,
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
           },
         }
       );
@@ -1252,16 +1262,19 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const fetchReplies = async (commentId) => {
+  const fetchReplies = async (commentId,isCompanyPost) => {
+  console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
+  
+
     try {
       const userToken = localStorage.getItem("token");
-      const response = await axios.get(
-        `${apiUrl}/api/comments/${commentId}/replies`,
-        {
-          headers: { Authorization: `Bearer ${userToken}` },
-        }
-      );
-
+      const endPoint = isCompanyPost
+        ? `/api/company-post-comments/${commentId}`
+        : `/api/comments/${commentId}`;
+      const response = await axios.get(`${apiUrl}${endPoint}/replies`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      console.log("Company replies response:", response.data);
       const replies = response.data.data.comments || [];
 
       const processedReplies = replies.map((reply) => ({
@@ -1300,6 +1313,7 @@ export default function SocialNetworkFeed() {
               }
             : null
           : null,
+      isCompanyPost:isCompanyPost
       }));
 
       setAllReplies((prev) => ({
@@ -1431,6 +1445,8 @@ export default function SocialNetworkFeed() {
     loadCachedReplies();
   }, []);
 
+  console.log("comments",comments)
+
   const openCommentModal = (postId, postIsCompanyPost) => {
     setCurrentPostId(postId);
     setShowCommentModal(true);
@@ -1493,7 +1509,7 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleReply = async (commentId, replyToUser = null, isCompanyPost) => {
+  const handleReply = async (commentId, replyToUser = null, replyContent = replyText, postId ) => {
     if (!commentId || !replyText.trim()) return;
 
     try {
@@ -1507,24 +1523,34 @@ export default function SocialNetworkFeed() {
 
       // Jika membuat reply baru
       const endPoint = isCompanyPost
-        ? `/api/company-post-comments/${commentId}`
-        : `/api/comments/${commentId}`;
+        ? `/api/company-posts/${postId}/comments/reply`
+        : `/api/comments/${commentId}/replies`;
+      // console.log("isCompanyPost:", isCompanyPost, "endpoint:", endPoint);
       const response = await axios.post(
-        `${apiUrl}${endPoint}/replies`,
+        `${apiUrl}${endPoint}`,
         {
-          content: replyText,
-          reply_to_id: replyingTo, // Include the reply_to_id if this is a reply to another reply
+          parent_id:commentId,
+          content: replyContent, 
         },
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
             "Content-Type": "application/json",
           },
+        },{
+          parent_id:commentId,
+          content: replyContent,
         }
+
       );
+      console.log("Reply response:", response);
+
 
       // Create the new reply object with all necessary data
-      const newReply = {
+      if (!response.data || !response.data.data) {
+        throw new Error("No reply data received from the server.");
+      }
+            const newReply = {  
         ...response.data.data,
         id: response.data.data.id || Math.random().toString(36).substr(2, 9),
         user: {
@@ -1546,6 +1572,7 @@ export default function SocialNetworkFeed() {
             }
           : null,
         created_at: new Date().toISOString(),
+        isCompanyPost: isCompanyPost
       };
 
       // Update state based on whether this is a reply to a comment or another reply
@@ -1611,6 +1638,7 @@ export default function SocialNetworkFeed() {
         type: "success",
         message: "Reply posted successfully!",
       });
+      console.log("Sending reply", { postId, commentId, replyContent });
     } catch (error) {
       console.error("Failed to add reply:", error);
       setAlertInfo({
@@ -1630,7 +1658,7 @@ export default function SocialNetworkFeed() {
 
     // Jika belum ada data replies, fetch dari API
     if (!allReplies[commentId] || allReplies[commentId].length === 0) {
-      await fetchReplies(commentId);
+      await fetchReplies(commentId,isCompanyPost ? true : false);
     }
 
     // Toggle expanded state
@@ -2452,23 +2480,23 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = async (commentId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost
+        ? `/api/company-posts-comments/${commentId}`
+        : `/api/comments/${commentId}`;
       if (!userToken) {
         throw new Error("No authentication token found");
       }
 
       // Gunakan endpoint yang sesuai dengan backend
-      const response = await axios.delete(
-        `${apiUrl}/api/comments/${commentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.delete(`${apiUrl}${endPoint}`, {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.status >= 200 && response.status < 300) {
         // Update state komentar
@@ -2534,13 +2562,16 @@ export default function SocialNetworkFeed() {
     setShowCommentOptions(true);
   };
 
-  const handleUpdateComment = async (commentId) => {
+  const handleUpdateComment = async (commentId, isCompanyPost) => {
     if (!commentId || !commentText.trim()) return;
+    const endPoint = isCompanyPost
+      ? `/api/company-post-comments/${commentId}`
+      : `/api/comments/${commentId}`;
 
     try {
       const userToken = localStorage.getItem("token");
       await axios.put(
-        `${apiUrl}/api/comments/${commentId}`,
+        `${apiUrl}${endPoint}`,
         { content: commentText },
         {
           headers: {
@@ -2707,23 +2738,23 @@ export default function SocialNetworkFeed() {
     setShowReportModal(true);
   };
 
-        // Perbaikan untuk penggabungan posts
-const combinedPosts = [ 
-  // Regular posts dengan prefix untuk memastikan uniqueness
-  ...posts.map(post => ({
-    ...post,
-    isCompanyPost: false,
-    uniqueId: `user-${post.id}`, // Tambahkan unique identifier
-    postType: 'user'
-  })),
-  // Company posts dengan prefix berbeda
-  ...postCompany.map(post => ({
-    ...post,
-    isCompanyPost: true,
-    uniqueId: `company-${post.id}`, // Tambahkan unique identifier
-    postType: 'company'
-  }))
-].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  // Perbaikan untuk penggabungan posts
+  const combinedPosts = [
+    // Regular posts dengan prefix untuk memastikan uniqueness
+    ...posts.map((post) => ({
+      ...post,
+      isCompanyPost: false,
+      uniqueId: `user-${post.id}`, // Tambahkan unique identifier
+      postType: "user",
+    })),
+    // Company posts dengan prefix berbeda
+    ...postCompany.map((post) => ({
+      ...post,
+      isCompanyPost: true,
+      uniqueId: `company-${post.id}`, // Tambahkan unique identifier
+      postType: "company",
+    })),
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   return (
     <div className="flex flex-col px-4 py-4 md:flex-row bg-gray-50 md:px-6 lg:px-12 xl:px-32 md:py-6">
       {renderShowcase()}
@@ -3120,7 +3151,7 @@ const combinedPosts = [
             <div className="py-4 text-center">Loading post...</div>
           ) : (
             <>
-              {combinedPosts.map(post  => (
+              {combinedPosts.map((post) => (
                 <div
                   key={post.uniqueId}
                   post={post}
@@ -3239,7 +3270,10 @@ const combinedPosts = [
                           <h6
                             className="mb-0 text-sm font-bold cursor-pointer hover:underline"
                             onClick={() =>
-                              fetchUserProfile(post.user?.username, post.user?.id)
+                              fetchUserProfile(
+                                post.user?.username,
+                                post.user?.id
+                              )
                             }
                           >
                             {post.isCompanyPost
@@ -3282,7 +3316,9 @@ const combinedPosts = [
                                     className="text-blue-500 hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      navigate(`/api/company-post/${post.company.id}`);
+                                      navigate(
+                                        `/api/company-post/${post.company.id}`
+                                      );
                                     }}
                                   >
                                     Posted in{" "}
@@ -4432,7 +4468,9 @@ const combinedPosts = [
                                 onClick={() =>
                                   handleReply(
                                     comment.id,
-                                    replyToUser || comment.user
+                                    replyToUser || comment.user,
+                                    replyText,
+                                    currentPostId
                                   )
                                 }
                               >
@@ -4636,7 +4674,8 @@ const combinedPosts = [
                                               onClick={() =>
                                                 handleReply(
                                                   reply.id,
-                                                  replyToUser || reply.user
+                                                  replyToUser || reply.user,
+                                                  reply.isCompanyPost
                                                 )
                                               }
                                             >
