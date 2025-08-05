@@ -1225,37 +1225,30 @@ export default function SocialNetworkFeed() {
         }
       );
 
-      const rawComments = response.data?.data?.comments || [];
+      const commentsWithReplies = (response.data?.data?.comments || []).map(
+        (comment) => {
+          // Muat replies dari cache jika ada
+          const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
+          const replies = cachedReplies
+            ? JSON.parse(cachedReplies)
+            : Array.isArray(comment.replies)
+            ? comment.replies
+            : [];
 
-const commentsWithReplies = await Promise.all(
-  rawComments.map(async (comment) => {
-    // ✅ Ambil replies dari localStorage, kalau tidak ada, fetch dari API
-    let replies = [];
-    const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
-    
-    if (cachedReplies) {
-      replies = JSON.parse(cachedReplies);
-    } else {
-      // Ambil reply dari API
-      const fetched = await fetchReplies(comment.id, isCompanyPost);
-      replies = Array.isArray(fetched) ? fetched : [];
-    }
-
-    return {
-      id: comment.id || Math.random().toString(36).substr(2, 9),
-      content: comment.content || "",
-      user: comment.user || {
-        name: "Unknown User",
-        initials: "UU",
-        username: "unknown",
-        profile_photo: null,
-      },
-      replies: replies,
-      repliesCount: comment.replies_count || replies.length,
-    };
-  })
-);
-
+          return {
+            id: comment.id || Math.random().toString(36).substr(2, 9),
+            content: comment.content || "",
+            user: comment.user || {
+              name: "Unknown User",
+              initials: "UU",
+              username: "unknown",
+              profile_photo: null,
+            },
+            replies: replies,
+            repliesCount: comment.replies_count || replies.length,
+          };
+        }
+      );
 
       setComments((prev) => ({
         ...prev,
