@@ -1246,6 +1246,7 @@ export default function SocialNetworkFeed() {
             },
             replies: replies,
             repliesCount: comment.replies_count || replies.length,
+            isCompanyPost
           };
         }
       );
@@ -1253,6 +1254,7 @@ export default function SocialNetworkFeed() {
       setComments((prev) => ({
         ...prev,
         [postId]: commentsWithReplies,
+        isCompanyPost
       }));
     } catch (error) {
       console.error("Failed to fetch comments:", error);
@@ -1275,8 +1277,21 @@ export default function SocialNetworkFeed() {
         headers: { Authorization: `Bearer ${userToken}` },
       });
       console.log("Company replies response:", response.data);
-      const replies = response.data.data.comments || [];
+      const rawData = response.data.data;
+      const replies = Array.isArray(rawData)
+        ? rawData
+        : rawData.comments || [];
+      
+      console.log(commentId)
+      console.log("🔥 FULL REPLY RESPONSE:", response.data);
+console.log("🔥 response.data.data:", response.data.data);
 
+if (!Array.isArray(replies)) {
+  console.warn("⚠️ Unexpected reply format:", replies);
+  return;
+}
+
+      
       const processedReplies = replies.map((reply) => ({
         ...reply,
         // Create initials for the reply user
@@ -1313,7 +1328,7 @@ export default function SocialNetworkFeed() {
               }
             : null
           : null,
-      isCompanyPost:isCompanyPost
+      isCompanyPost
       }));
 
       setAllReplies((prev) => ({
@@ -1523,27 +1538,30 @@ export default function SocialNetworkFeed() {
 
       // Jika membuat reply baru
       const endPoint = isCompanyPost
-        ? `/api/company-posts/${postId}/comments/reply`
-        : `/api/comments/${commentId}/replies`;
+        ? `${apiUrl}/api/company-posts/${postId}/comments/reply`
+        : `${apiUrl}/api/comments/${commentId}/replies`;
       // console.log("isCompanyPost:", isCompanyPost, "endpoint:", endPoint);
+      const body = isCompanyPost
+      ? {
+        parent_id:commentId,
+        content:replyText
+      }
+      :{
+        commentId,
+        content:replyText
+      }
       const response = await axios.post(
-        `${apiUrl}${endPoint}`,
-        {
-          parent_id:commentId,
-          content: replyContent, 
-        },
+        endPoint,body,
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
             "Content-Type": "application/json",
           },
-        },{
-          parent_id:commentId,
-          content: replyContent,
         }
 
       );
       console.log("Reply response:", response);
+      console.log("💬 Submitting reply to:", commentId)
 
 
       // Create the new reply object with all necessary data
@@ -1572,7 +1590,7 @@ export default function SocialNetworkFeed() {
             }
           : null,
         created_at: new Date().toISOString(),
-        isCompanyPost: isCompanyPost
+        isCompanyPost
       };
 
       // Update state based on whether this is a reply to a comment or another reply
@@ -1617,6 +1635,8 @@ export default function SocialNetworkFeed() {
               return {
                 ...comment,
                 repliesCount: (comment.repliesCount || 0) + 1,
+                  isCompanyPost
+
               };
             }
             return comment;
@@ -1649,7 +1669,7 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const toggleReplies = async (commentId) => {
+  const toggleReplies = async (commentId,isCompanyPost) => {
     // Reset editing states when toggling replies
     setEditingReplyId(null);
     setEditingCommentId(null);
@@ -1658,8 +1678,10 @@ export default function SocialNetworkFeed() {
 
     // Jika belum ada data replies, fetch dari API
     if (!allReplies[commentId] || allReplies[commentId].length === 0) {
-      await fetchReplies(commentId,isCompanyPost ? true : false);
+      await fetchReplies(commentId,isCompanyPost);
     }
+    console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
+
 
     // Toggle expanded state
     setExpandedReplies((prev) => ({
@@ -2403,6 +2425,8 @@ export default function SocialNetworkFeed() {
               return {
                 ...comment,
                 repliesCount: (comment.repliesCount || 1) - 1,
+                  isCompanyPost
+
               };
             }
             return comment;
@@ -2463,6 +2487,8 @@ export default function SocialNetworkFeed() {
                 return {
                   ...comment,
                   repliesCount: (comment.repliesCount || 0) + 1,
+                  isCompanyPost
+
                 };
               }
               return comment;
@@ -2590,6 +2616,7 @@ export default function SocialNetworkFeed() {
                 return {
                   ...comment,
                   content: commentText,
+                  isCompanyPost:true
                 };
               }
               return comment;
@@ -4371,7 +4398,7 @@ export default function SocialNetworkFeed() {
                                         handleReportClick(
                                           comment.user.id,
                                           "comment",
-                                          comment.id
+                                          comment.id,
                                         );
                                       }
                                     }}
@@ -4440,7 +4467,7 @@ export default function SocialNetworkFeed() {
                                 allReplies[comment.id]?.length > 0) && (
                                 <button
                                   className="text-xs text-gray-500 hover:text-blue-500"
-                                  onClick={() => toggleReplies(comment.id)}
+                                  onClick={() => toggleReplies(comment.id,comment.isCompanyPost)}
                                 >
                                   {expandedReplies[comment.id]
                                     ? "Hide replies"
@@ -4588,7 +4615,7 @@ export default function SocialNetworkFeed() {
                                                       handleReportClick(
                                                         reply.user.id,
                                                         "comment",
-                                                        reply.id
+                                                        reply.id  
                                                       );
                                                     }
                                                   }}
