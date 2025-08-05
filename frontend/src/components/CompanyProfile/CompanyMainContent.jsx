@@ -48,6 +48,8 @@ export default function CompanyMainContent({
     return "Just now";
   };
 
+  console.log("Rendering CompanyMainContent with reviews:", userReviews);
+
 
   return (
     <div className="lg:col-span-6 space-y-4">
