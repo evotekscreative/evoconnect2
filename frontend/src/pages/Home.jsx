@@ -1256,26 +1256,10 @@ const commentsWithReplies = await Promise.all(
   })
 );
 
-          return {
-            id: comment.id || Math.random().toString(36).substr(2, 9),
-            content: comment.content || "",
-            user: comment.user || {
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-              profile_photo: null,
-            },
-            replies: replies,
-            repliesCount: comment.replies_count || replies.length,
-            isCompanyPost
-          };
-        }
-      );
 
       setComments((prev) => ({
         ...prev,
         [postId]: commentsWithReplies,
-        isCompanyPost
       }));
     } catch (error) {
       console.error("Failed to fetch comments:", error);
@@ -1298,21 +1282,8 @@ const commentsWithReplies = await Promise.all(
         headers: { Authorization: `Bearer ${userToken}` },
       });
       console.log("Company replies response:", response.data);
-      const rawData = response.data.data;
-      const replies = Array.isArray(rawData)
-        ? rawData
-        : rawData.comments || [];
-      
-      console.log(commentId)
-      console.log("🔥 FULL REPLY RESPONSE:", response.data);
-console.log("🔥 response.data.data:", response.data.data);
+      const replies = response.data.data.comments || [];
 
-if (!Array.isArray(replies)) {
-  console.warn("⚠️ Unexpected reply format:", replies);
-  return;
-}
-
-      
       const processedReplies = replies.map((reply) => ({
         ...reply,
         // Create initials for the reply user
@@ -1349,7 +1320,7 @@ if (!Array.isArray(replies)) {
               }
             : null
           : null,
-      isCompanyPost
+      isCompanyPost:isCompanyPost
       }));
 
       setAllReplies((prev) => ({
@@ -1559,30 +1530,27 @@ if (!Array.isArray(replies)) {
 
       // Jika membuat reply baru
       const endPoint = isCompanyPost
-        ? `${apiUrl}/api/company-posts/${postId}/comments/reply`
-        : `${apiUrl}/api/comments/${commentId}/replies`;
+        ? `/api/company-posts/${postId}/comments/reply`
+        : `/api/comments/${commentId}/replies`;
       // console.log("isCompanyPost:", isCompanyPost, "endpoint:", endPoint);
-      const body = isCompanyPost
-      ? {
-        parent_id:commentId,
-        content:replyText
-      }
-      :{
-        commentId,
-        content:replyText
-      }
       const response = await axios.post(
-        endPoint,body,
+        `${apiUrl}${endPoint}`,
+        {
+          parent_id:commentId,
+          content: replyContent, 
+        },
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
             "Content-Type": "application/json",
           },
+        },{
+          parent_id:commentId,
+          content: replyContent,
         }
 
       );
       console.log("Reply response:", response);
-      console.log("💬 Submitting reply to:", commentId)
 
 
       // Create the new reply object with all necessary data
@@ -1611,7 +1579,7 @@ if (!Array.isArray(replies)) {
             }
           : null,
         created_at: new Date().toISOString(),
-        isCompanyPost
+        isCompanyPost: isCompanyPost
       };
 
       // Update state based on whether this is a reply to a comment or another reply
@@ -1656,8 +1624,6 @@ if (!Array.isArray(replies)) {
               return {
                 ...comment,
                 repliesCount: (comment.repliesCount || 0) + 1,
-                  isCompanyPost
-
               };
             }
             return comment;
@@ -1690,7 +1656,7 @@ if (!Array.isArray(replies)) {
     }
   };
 
-  const toggleReplies = async (commentId,isCompanyPost) => {
+  const toggleReplies = async (commentId) => {
     // Reset editing states when toggling replies
     setEditingReplyId(null);
     setEditingCommentId(null);
@@ -1699,10 +1665,8 @@ if (!Array.isArray(replies)) {
 
     // Jika belum ada data replies, fetch dari API
     if (!allReplies[commentId] || allReplies[commentId].length === 0) {
-      await fetchReplies(commentId,isCompanyPost);
+      await fetchReplies(commentId,isCompanyPost ? true : false);
     }
-    console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
-
 
     // Toggle expanded state
     setExpandedReplies((prev) => ({
@@ -2446,8 +2410,6 @@ if (!Array.isArray(replies)) {
               return {
                 ...comment,
                 repliesCount: (comment.repliesCount || 1) - 1,
-                  isCompanyPost
-
               };
             }
             return comment;
@@ -2508,8 +2470,6 @@ if (!Array.isArray(replies)) {
                 return {
                   ...comment,
                   repliesCount: (comment.repliesCount || 0) + 1,
-                  isCompanyPost
-
                 };
               }
               return comment;
@@ -2637,7 +2597,6 @@ if (!Array.isArray(replies)) {
                 return {
                   ...comment,
                   content: commentText,
-                  isCompanyPost:true
                 };
               }
               return comment;
@@ -4419,7 +4378,7 @@ if (!Array.isArray(replies)) {
                                         handleReportClick(
                                           comment.user.id,
                                           "comment",
-                                          comment.id,
+                                          comment.id
                                         );
                                       }
                                     }}
@@ -4488,7 +4447,7 @@ if (!Array.isArray(replies)) {
                                 allReplies[comment.id]?.length > 0) && (
                                 <button
                                   className="text-xs text-gray-500 hover:text-blue-500"
-                                  onClick={() => toggleReplies(comment.id,comment.isCompanyPost)}
+                                  onClick={() => toggleReplies(comment.id)}
                                 >
                                   {expandedReplies[comment.id]
                                     ? "Hide replies"
@@ -4636,7 +4595,7 @@ if (!Array.isArray(replies)) {
                                                       handleReportClick(
                                                         reply.user.id,
                                                         "comment",
-                                                        reply.id  
+                                                        reply.id
                                                       );
                                                     }
                                                   }}
