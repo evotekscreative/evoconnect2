@@ -8,6 +8,8 @@ export default function ReviewsTab({
   handleCommentSubmit,
   formatDate
 }) {
+  console.log("Current Reviews:", userReviews);
+
   return (
     <div className="bg-white p-6 rounded-md shadow text-sm space-y-6">
       <div className="flex items-start mb-6">
@@ -16,7 +18,13 @@ export default function ReviewsTab({
           alt="User photo"
           className="w-10 h-10 rounded-full mr-4"
         />
-        <div className="flex-1">
+        <form
+          className="flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCommentSubmit();
+          }}
+        >
           <textarea
             placeholder="Add a public comment..."
             className="w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
@@ -27,30 +35,31 @@ export default function ReviewsTab({
           <div className="flex justify-between items-center mt-2">
             <span className="text-gray-400">{userReviews.length} Comments</span>
             <div>
-              <button 
+              <button
+                type="button"
                 className="px-4 py-1 mr-2 rounded-md bg-blue-100 text-blue-500 hover:bg-blue-200 text-sm"
                 onClick={() => setNewComment("")}
               >
                 CANCEL
               </button>
-              <button 
+              <button
+                type="submit"
                 className="px-4 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600 text-sm"
-                onClick={handleCommentSubmit}
               >
                 COMMENT
               </button>
             </div>
           </div>
-        </div>
+        </form>
       </div>
 
       {userReviews.length === 0 ? (
         <div className="text-center text-gray-500 py-4">
           No comments yet. Be the first to comment!
         </div>
-      ) : (
+      ) : ( 
         userReviews.map((review, index) => (
-          <div key={review.id} className="flex items-start space-x-4">
+          <div key={index} className="flex items-start space-x-4">
             <img
               src={`https://randomuser.me/api/portraits/men/${index + 30}.jpg`}
               alt="Commenter photo"
