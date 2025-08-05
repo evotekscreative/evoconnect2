@@ -123,6 +123,8 @@ const PostPage = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedPostForImage, setSelectedPostForImage] = useState(null);
+  const [savedJobs, setSavedJobs] = useState([]);
+
 
   // Fungsi untuk membuka modal gambar
   const openImageModal = (post, index) => {
@@ -195,6 +197,29 @@ const PostPage = () => {
       color: "text-black",
     },
   ];
+
+    const fetchSavedJobs = async () => {
+    try {
+      const response = await fetch(
+        `${clientUrl}/api/saved-jobs?page=1&pageSize=10`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.code === 200) {
+        setSavedJobs(data.data.jobs || []);
+      }
+    } catch (error) {
+      console.error("Error fetching saved jobs:", error);
+    }
+  };
+
 
   const fetchConnections = async () => {
     const token = localStorage.getItem("token");
@@ -1737,7 +1762,7 @@ const PostPage = () => {
                   <span className="flex items-center gap-2 text-sm">
                     <Bookmark size={18} /> Job Saved
                   </span>
-                  <span className="text-base font-bold">120</span>
+                  <span className="text-base font-bold">{savedJobs.length || 0}</span>
                 </Link>
               </div>
 

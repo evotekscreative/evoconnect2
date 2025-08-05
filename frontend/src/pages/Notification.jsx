@@ -227,7 +227,34 @@ const NotificationPage = () => {
   };
 
   // Tambahkan fungsi handleAcceptConnection// Tambahkan state untuk melacak status koneksi
+  const [isConnection,setIsConnection] = useState(false);
+  const [connections, setConnections] = useState([]);
 
+  const handleConnectionAction = async() =>{
+    const token = localStorage.getItem("token");
+    const userId = getUserIdFromToken(token);
+
+    if(!userId) return;
+
+    try {
+          const res = await axios.get(`${apiUrl}/api/users/${userId}/connections`,{
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    
+    const connectionList = res.data?.data?.connections ?? []
+    console.log(connectionList)
+    setConnections(connectionList)
+
+    } catch (error) {
+      console.log("failed to fetch connection: ",error)
+    }
+
+  }
+
+  useEffect(()=>{
+   handleConnectionAction(); 
+
+  },[])
   // Modifikasi fungsi handleAcceptConnection
   const handleAcceptConnection = async (notification) => {
     const token = localStorage.getItem("token");
@@ -936,51 +963,49 @@ const NotificationPage = () => {
                             {/* Add Accept/Reject buttons fornnection requests */}
                             {/* Add Accept/Reject buttons for connection requests */}
                             {n.isConnectionRequest && (
-                              <div className="flex gap-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAcceptConnection(n);
-                                  }}
-                                  disabled={processingAction === n.id}
-                                  className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50 ${
-                                    n.connectionStatus === "accepted"
-                                      ? "hidden"
-                                      : ""
-                                  }`}
-                                >
-                                  {processingAction === n.id ? (
-                                    "Processing..."
-                                  ) : (
-                                    <>
-                                      <Check size={14} />
-                                      Accept
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRejectConnection(n);
-                                  }}
-                                  disabled={processingAction === n.id}
-                                  className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50 ${
-                                    n.connectionStatus === "rejected"
-                                      ? "hidden"
-                                      : ""
-                                  }`}
-                                >
-                                  {processingAction === n.id ? (
-                                    "Processing..."
-                                  ) : (
-                                    <>
-                                      <X size={14} />
-                                      Reject
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            )}
+  <div className="flex gap-2 mt-2">
+    {/* Cek apakah n.id sudah ada di dalam daftar connections */}
+    {!connections.some((conn) => conn.id === n.id) && (
+      <>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAcceptConnection(n);
+          }}
+          disabled={processingAction === n.id}
+          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50`}
+        >
+          {processingAction === n.id ? (
+            "Processing..."
+          ) : (
+            <>
+              <Check size={14} />
+              Accept
+            </>
+          )}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRejectConnection(n);
+          }}
+          disabled={processingAction === n.id}
+          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50`}
+        >
+          {processingAction === n.id ? (
+            "Processing..."
+          ) : (
+            <>
+              <X size={14} />
+              Reject
+            </>
+          )}
+        </button>
+      </>
+    )}
+  </div>
+)}
+
 
                             {/* Show status after action */}
                             {n.type === "connection" &&
