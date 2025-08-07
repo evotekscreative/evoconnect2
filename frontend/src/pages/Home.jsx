@@ -1225,30 +1225,37 @@ export default function SocialNetworkFeed() {
         }
       );
 
-      const commentsWithReplies = (response.data?.data?.comments || []).map(
-        (comment) => {
-          // Muat replies dari cache jika ada
-          const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
-          const replies = cachedReplies
-            ? JSON.parse(cachedReplies)
-            : Array.isArray(comment.replies)
-            ? comment.replies
-            : [];
+      const rawComments = response.data?.data?.comments || [];
 
-          return {
-            id: comment.id || Math.random().toString(36).substr(2, 9),
-            content: comment.content || "",
-            user: comment.user || {
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-              profile_photo: null,
-            },
-            replies: replies,
-            repliesCount: comment.replies_count || replies.length,
-          };
-        }
-      );
+const commentsWithReplies = await Promise.all(
+  rawComments.map(async (comment) => {
+    // ✅ Ambil replies dari localStorage, kalau tidak ada, fetch dari API
+    let replies = [];
+    const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
+    
+    if (cachedReplies) {
+      replies = JSON.parse(cachedReplies);
+    } else {
+      // Ambil reply dari API
+      const fetched = await fetchReplies(comment.id, isCompanyPost );
+      replies = Array.isArray(fetched) ? fetched : [];
+    }
+
+    return {
+      id: comment.id || Math.random().toString(36).substr(2, 9),
+      content: comment.content || "",
+      user: comment.user || {
+        name: "Unknown User",
+        initials: "UU",
+        username: "unknown",
+        profile_photo: null,
+      },
+      replies: replies,
+      repliesCount: comment.replies_count || replies.length,
+    };
+  })
+);
+
 
       setComments((prev) => ({
         ...prev,
@@ -2213,7 +2220,7 @@ export default function SocialNetworkFeed() {
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteComment(selectedComment.id)}
+                  onClick={() => handleDeleteComment(selectedComment.id,selectedComment.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Comment
@@ -2278,7 +2285,7 @@ export default function SocialNetworkFeed() {
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteReply(selectedReply.id)}
+                  onClick={() => handleDeleteReply(selectedReply.id,selectedReply.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Reply
@@ -2368,7 +2375,7 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeleteReply = async (replyId) => {
+  const handleDeleteReply = async (replyId,isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
       if (!userToken) {
@@ -2403,7 +2410,7 @@ export default function SocialNetworkFeed() {
             if (comment.id === parentCommentId) {
               return {
                 ...comment,
-                repliesCount: (comment.repliesCount || 1) - 1,
+                repliesCount: (comment.repliesCount || 1) - 1, 
               };
             }
             return comment;
@@ -2413,7 +2420,8 @@ export default function SocialNetworkFeed() {
       });
 
       // Send delete request
-      await axios.delete(`${apiUrl}/api/comments/${replyId}`, {
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
+      await axios.delete(endPoint, {
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
@@ -2485,7 +2493,7 @@ export default function SocialNetworkFeed() {
     try {
       const userToken = localStorage.getItem("token");
       const endPoint = isCompanyPost
-        ? `/api/company-posts-comments/${commentId}`
+        ? `/api/company-post-comments/${commentId}`
         : `/api/comments/${commentId}`;
       if (!userToken) {
         throw new Error("No authentication token found");
