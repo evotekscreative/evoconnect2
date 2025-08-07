@@ -2317,13 +2317,14 @@ export default function SocialNetworkFeed() {
     );
   };
 
-  const handleUpdateReply = async (replyId) => {
+  const handleUpdateReply = async (replyId,isCompanyPost) => {
     if (!replyId || !replyText.trim()) return;
 
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
       await axios.put(
-        `${apiUrl}/api/comments/${replyId}`,
+       endPoint ,
         { content: replyText },
         {
           headers: {
@@ -2565,13 +2566,13 @@ export default function SocialNetworkFeed() {
   const handleUpdateComment = async (commentId, isCompanyPost) => {
     if (!commentId || !commentText.trim()) return;
     const endPoint = isCompanyPost
-      ? `/api/company-post-comments/${commentId}`
-      : `/api/comments/${commentId}`;
+      ? `${apiUrl}/api/company-post-comments/${commentId}`
+      : `${apiUrl}/api/comments/${commentId}`;
 
     try {
       const userToken = localStorage.getItem("token");
       await axios.put(
-        `${apiUrl}${endPoint}`,
+        endPoint,
         { content: commentText },
         {
           headers: {
@@ -4397,7 +4398,7 @@ export default function SocialNetworkFeed() {
                                 <button
                                   className="px-3 py-1 text-sm text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                   onClick={() =>
-                                    handleUpdateComment(comment.id)
+                                    handleUpdateComment(comment.id,comment.isCompanyPost)
                                   }
                                 >
                                   Update
@@ -4614,7 +4615,7 @@ export default function SocialNetworkFeed() {
                                               <button
                                                 className="px-2 py-1 text-xs text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                                 onClick={() =>
-                                                  handleUpdateReply(reply.id)
+                                                  handleUpdateReply(reply.id,reply.isCompanyPost)
                                                 }
                                               >
                                                 Update
