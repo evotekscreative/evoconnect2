@@ -10,6 +10,7 @@ import (
 	"evoconnect/backend/model/web"
 	"evoconnect/backend/repository"
 	"fmt"
+	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -141,12 +142,15 @@ func (service *CompanyPostCommentServiceImpl) CreateReply(ctx context.Context, u
 
 	// Create reply comment (parent_id = request.ParentId, comment_to_id = nil)
 	comment := domain.CompanyPostComment{
+		Id:          uuid.New(),
 		PostId:      postId,
 		UserId:      userId,
 		ParentId:    &request.ParentId,
 		CommentToId: nil, // Reply biasa, bukan sub-reply
 		Content:     request.Content,
 	}
+	log.Println("🆕 ID to insert:", comment.Id)
+	log.Println("Will insert comment with ID:", comment.Id)
 
 	comment, err = service.CompanyPostCommentRepository.Create(ctx, tx, comment)
 	if err != nil {
@@ -158,6 +162,9 @@ func (service *CompanyPostCommentServiceImpl) CreateReply(ctx context.Context, u
 	if parentComment.UserId != userId && service.NotificationService != nil {
 		service.sendReplyNotification(ctx, post, parentComment, comment, userId)
 	}
+
+	err = tx.Commit() // ⬅️ PENTING! Tanpa ini data akan hilang
+
 
 	return service.toCompanyPostCommentResponse(comment, userId)
 }

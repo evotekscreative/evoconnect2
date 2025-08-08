@@ -19,9 +19,9 @@ func NewCompanyPostCommentRepository() CompanyPostCommentRepository {
 // Create new comment
 func (repository *CompanyPostCommentRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, comment domain.CompanyPostComment) (domain.CompanyPostComment, error) {
 	// Generate UUID if not provided
-	if comment.Id == uuid.Nil {
+
 		comment.Id = uuid.New()
-	}
+	
 
 	// Set timestamps
 	now := time.Now()

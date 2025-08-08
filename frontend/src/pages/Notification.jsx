@@ -235,13 +235,19 @@ const NotificationPage = () => {
     const userId = getUserIdFromToken(token);
 
     if(!userId) return;
+    // console.log(userId)
 
     try {
           const res = await axios.get(`${apiUrl}/api/users/${userId}/connections`,{
       headers: { Authorization: `Bearer ${token}` },
     })
     
-    const connectionList = res.data?.data?.connections ?? []
+    // const connectionList = res.data.connections.user.is_connected ?? []
+    const connectionList = res.data.data.connections.map((conn) => conn.user.is_connected);
+    if(res.data.data.total < 2){
+      setConnections([])
+      return
+    }
     console.log(connectionList)
     setConnections(connectionList)
 
@@ -973,7 +979,7 @@ const NotificationPage = () => {
             handleAcceptConnection(n);
           }}
           disabled={processingAction === n.id}
-          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50`}
+          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50 ${connections.length >= 2  ? 'hidden' : ''}`}
         >
           {processingAction === n.id ? (
             "Processing..."
@@ -990,7 +996,7 @@ const NotificationPage = () => {
             handleRejectConnection(n);
           }}
           disabled={processingAction === n.id}
-          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50`}
+          className={`flex items-center gap-1 px-3 py-1 text-xs text-white transition bg-red-500 rounded hover:bg-red-600 disabled:opacity-50 ${connections.length >= 2 ? 'hidden' : ''}`}
         >
           {processingAction === n.id ? (
             "Processing..."

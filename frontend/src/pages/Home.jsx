@@ -1237,7 +1237,7 @@ const commentsWithReplies = await Promise.all(
       replies = JSON.parse(cachedReplies);
     } else {
       // Ambil reply dari API
-      const fetched = await fetchReplies(comment.id, isCompanyPost);
+      const fetched = await fetchReplies(comment.id, isCompanyPost );
       replies = Array.isArray(fetched) ? fetched : [];
     }
 
@@ -2220,7 +2220,7 @@ const commentsWithReplies = await Promise.all(
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteComment(selectedComment.id)}
+                  onClick={() => handleDeleteComment(selectedComment.id,selectedComment.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Comment
@@ -2285,7 +2285,7 @@ const commentsWithReplies = await Promise.all(
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteReply(selectedReply.id)}
+                  onClick={() => handleDeleteReply(selectedReply.id,selectedReply.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Reply
@@ -2324,13 +2324,14 @@ const commentsWithReplies = await Promise.all(
     );
   };
 
-  const handleUpdateReply = async (replyId) => {
+  const handleUpdateReply = async (replyId,isCompanyPost) => {
     if (!replyId || !replyText.trim()) return;
 
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
       await axios.put(
-        `${apiUrl}/api/comments/${replyId}`,
+       endPoint ,
         { content: replyText },
         {
           headers: {
@@ -2374,7 +2375,7 @@ const commentsWithReplies = await Promise.all(
     }
   };
 
-  const handleDeleteReply = async (replyId) => {
+  const handleDeleteReply = async (replyId,isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
       if (!userToken) {
@@ -2409,7 +2410,7 @@ const commentsWithReplies = await Promise.all(
             if (comment.id === parentCommentId) {
               return {
                 ...comment,
-                repliesCount: (comment.repliesCount || 1) - 1,
+                repliesCount: (comment.repliesCount || 1) - 1, 
               };
             }
             return comment;
@@ -2419,7 +2420,8 @@ const commentsWithReplies = await Promise.all(
       });
 
       // Send delete request
-      await axios.delete(`${apiUrl}/api/comments/${replyId}`, {
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
+      await axios.delete(endPoint, {
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
@@ -2491,7 +2493,7 @@ const commentsWithReplies = await Promise.all(
     try {
       const userToken = localStorage.getItem("token");
       const endPoint = isCompanyPost
-        ? `/api/company-posts-comments/${commentId}`
+        ? `/api/company-post-comments/${commentId}`
         : `/api/comments/${commentId}`;
       if (!userToken) {
         throw new Error("No authentication token found");
@@ -2572,13 +2574,13 @@ const commentsWithReplies = await Promise.all(
   const handleUpdateComment = async (commentId, isCompanyPost) => {
     if (!commentId || !commentText.trim()) return;
     const endPoint = isCompanyPost
-      ? `/api/company-post-comments/${commentId}`
-      : `/api/comments/${commentId}`;
+      ? `${apiUrl}/api/company-post-comments/${commentId}`
+      : `${apiUrl}/api/comments/${commentId}`;
 
     try {
       const userToken = localStorage.getItem("token");
       await axios.put(
-        `${apiUrl}${endPoint}`,
+        endPoint,
         { content: commentText },
         {
           headers: {
@@ -4404,7 +4406,7 @@ const commentsWithReplies = await Promise.all(
                                 <button
                                   className="px-3 py-1 text-sm text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                   onClick={() =>
-                                    handleUpdateComment(comment.id)
+                                    handleUpdateComment(comment.id,comment.isCompanyPost)
                                   }
                                 >
                                   Update
@@ -4621,7 +4623,7 @@ const commentsWithReplies = await Promise.all(
                                               <button
                                                 className="px-2 py-1 text-xs text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                                 onClick={() =>
-                                                  handleUpdateReply(reply.id)
+                                                  handleUpdateReply(reply.id,reply.isCompanyPost)
                                                 }
                                               >
                                                 Update
