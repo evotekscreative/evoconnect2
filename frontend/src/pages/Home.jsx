@@ -1208,7 +1208,12 @@ export default function SocialNetworkFeed() {
       const cachedComments = localStorage.getItem(`comments_${postId}`);
       if (cachedComments) {
         const parsedComments = JSON.parse(cachedComments);
-        setComments((prev) => ({ ...prev, [postId]: parsedComments }));
+        localStorage.setItem(`comments_${postId}`, JSON.stringify(data.data.comments));
+        setComments((prev) => ({
+        ...prev,
+        [postId]: parsedComments,
+      }));
+
       }
 
       const userToken = localStorage.getItem("token");
@@ -2489,6 +2494,46 @@ const commentsWithReplies = await Promise.all(
     }
   };
 
+  const handleEditComment = async (commentId, newContent, isCompanyPost) => {
+  try {
+    const userToken = localStorage.getItem("token");
+    const endpoint = isCompanyPost
+      ? `/api/company-post-comments/${commentId}`
+      : `/api/post-comments/${commentId}`;
+
+    const response = await axios.put(
+      `${apiUrl}${endpoint}`,
+      { content: newContent },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Comment updated successfully!",
+    });
+
+    // 🧠 Hapus cache dan refresh komentar agar edit tersimpan saat refresh
+    localStorage.removeItem(`comments_${currentPostId}`);
+    fetchComments(currentPostId, isCompanyPost);
+
+    setEditingCommentId(null);
+    setCommentText("");
+  } catch (error) {
+    console.error("Failed to update comment:", error);
+    setAlertInfo({
+      show: true,
+      type: "error",
+      message: "Failed to update comment",
+    });
+  }
+};
+
   const handleDeleteComment = async (commentId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
@@ -2518,6 +2563,8 @@ const commentsWithReplies = await Promise.all(
           }
           return updatedComments;
         });
+        localStorage.removeItem(`comments_${currentPostId}`);
+        fetchComments(currentPostId, isCompanyPost);
 
         // Update jumlah komentar di post
         setPosts((prevPosts) =>
