@@ -123,6 +123,27 @@ const JobApplicationModal = ({ onClose, jobVacancyId, onApplied, setHasApplied }
         formData.append("expected_salary", userData.salary ? Number(userData.salary) : 0);
         formData.append("available_start_date", userData.availableStartDate);
 
+        if((formData.motivation_letter || "").length > 3000){
+            alert("Motivation letter exceed 3000 character");
+            return;
+        }
+        if((formData.cover_letter || "").length > 3000){
+            alert("Motivation letter exceed 3000 character");
+            return;
+        }
+
+        if((formData.contact_phone || "").length > 20){
+            alert("Phone Number exceed 20 character");
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(userData.email)) {
+        alert("Invalid email format");
+        return;
+} 
+
         if (userData.resume) {
             if (userData.resume.isExisting) {
                 formData.append("existing_cv_path", userData.resume.path);

@@ -324,6 +324,11 @@ export default function ManageVacancy() {
       return;
     }
 
+    if ((formData.title || "").length > 200) {
+      window.alert("title has exceed 200 !");
+      return;
+    }
+
     if ((formData?.description || "").length < 50) {
       window.alert("Description must be more than 50 !");
       return;
@@ -331,6 +336,31 @@ export default function ManageVacancy() {
 
     if ((formData?.requirements || "").length < 20) {
       window.alert("Requirements must be more than 20 !");
+      return;
+    }
+
+    if ((formData?.skills || "").length > 50) {
+      window.alert("Skills has exceeded 50 !");
+      return;
+    }
+
+    if ((formData?.benefits || "").length > 50) {
+      window.alert("Benefits has exceeded 20 !");
+      return;
+    }
+
+    if ((!formData?.workType)) {
+      window.alert("Worktype is required");
+      return;
+    }
+
+    if ((formData?.location || "").length < 2) {
+      window.alert("Location must be more than 2 !");
+      return;
+    }
+
+    if ((formData?.location || "").length > 100) {
+      window.alert("Location has exceeded 100!");
       return;
     }
 

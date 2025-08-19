@@ -101,7 +101,7 @@ useEffect(() =>{
             <span className="font-bold text-lg">{savedJobs.length || 0}</span>
           </Link>
         </div>
-        <button className="text-blue-600 text-base mt-5">Log Out</button>
+        {/* <button className="text-blue-600 text-base mt-5">Log Out</button> */}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import React, { useState } from "react";
 export default function ProfileExperienceModal({
   show,
   onClose,
-  experienceForm,
+    experienceForm,
   setExperienceForm,
   handleExperienceSubmit,
   handleExperienceChange,
@@ -97,7 +97,7 @@ export default function ProfileExperienceModal({
               onChange={handleExperienceChange}
               placeholder="Job Title "
               className="w-full p-2 border rounded"
-              required
+              // required
             />
             <input
               type="text"
@@ -106,17 +106,8 @@ export default function ProfileExperienceModal({
               onChange={handleExperienceChange}
               placeholder="Company Name "
               className="w-full p-2 border rounded"
-              required
+              // required
             />
-            <input
-              type="text"
-              name="location"
-              value={experienceForm.location}
-              onChange={handleExperienceChange}
-              placeholder="Location (City, Country)"
-              className="w-full p-2 border rounded"
-            />
-
             {/* Dates */}
             <div className="flex gap-4">
               <div className="flex-1">
