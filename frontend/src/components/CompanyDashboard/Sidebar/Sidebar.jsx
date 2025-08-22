@@ -3,131 +3,117 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import Logo from "../../../assets/img/logo-evo-2.png";
+import useCompanyStore from "../../../store/useApplicationStore";
 // Dropdown menerima selectedCompany, onCompanyChange, dan companyId dari Sidebar
 
-export default function Sidebar() {
-    const apiUrl =
-        import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
-  const [collapseShow, setCollapseShow] = React.useState("hidden");
-  const { companyId } = useParams();
-  const [selectedCompany, setSelectedCompany] = useState(null);
+const Dropdown = ({ selectedCompany, setSelectedCompany, companies }) => {
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate(); // Tambahkan useNavigate di Sidebar
 
-  const Dropdown = ({
-    selectedCompany,
-    setSelectedCompany,
-    onCompanyChange,
-    companyId,
-  }) => {
-    const [companies, setCompanies] = useState([]);
-    const [isOpen, setIsOpen] = useState(false);
-    const navigate = useNavigate();
-    const location = useLocation();
-
-  const token = React.useMemo(() => localStorage.getItem("token"), []);
-
-    useEffect(() => {
-      const fetchCompanies = async () => {
-        try {
-          const response = await fetch(
-            `${apiUrl}/api/my-companies`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            const companyList = Array.isArray(data.data) ? data.data : [];
-            setCompanies(companyList);
-
-            // Set selected company hanya jika id cocok, jika tidak ada id ambil pertama
-            let selected = null;
-            if (companyId) {
-              selected = companyList.find(
-                (c) => c.id.toString() === companyId.toString()
-              );
-            }
-            if (!companyId || !selected) {
-              selected = companyList[0];
-            }
-            if (selected && !selectedCompany) {
-              setSelectedCompany(selected);
-              if (onCompanyChange) onCompanyChange(selected);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching companies:", error);
-        }
-      };
-      fetchCompanies();
-    }, [companyId, token, apiUrl]);
-
-    const handleSelectCompany = (company) => {
-      setSelectedCompany(company);
-      setIsOpen(false);
-      if (onCompanyChange) onCompanyChange(company);
-
-      // Ganti companyId di path sekarang dengan id baru, support path baru
-      const currentPath = location.pathname;
-      // regex: cari angka/uuid setelah /company-dashboard atau /company-dashboard/manage-member
-      const newPath = currentPath.replace(
-        /(\/company-dashboard(?:\/manage-member)?\/)[^/]+/,
-        `$1${company.id}`
-      );
-      navigate(newPath);
-    };
-
-    if (!selectedCompany) return <div>Loading...</div>;
-
-    return (
-      <div className="relative z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none"
-        >
-          <span className="truncate">{selectedCompany.name}</span>
-          {isOpen ? (
-            <ChevronUp className="w-4 h-4 ml-2" />
-          ) : (
-            <ChevronDown className="w-4 h-4 ml-2" />
-          )}
-        </button>
-
-        {isOpen && (
-          <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50">
-            <div className="py-1 max-h-60 overflow-auto">
-              {companies.map((company) => (
-                <button
-                  key={company.id}
-                  onClick={() => handleSelectCompany(company)}
-                  className={`block w-full px-4 py-2 text-sm text-left ${
-                    company.id === selectedCompany.id
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {company.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Callback jika company berubah
-  const handleCompanyChange = (company) => {
+  const handleSelectCompany = (company) => {
     setSelectedCompany(company);
+    setIsOpen(false);
+    // Ganti companyId di path sekarang dengan id baru, support path baru
+    const currentPath = location.pathname;
+    // regex: cari angka/uuid setelah /company-dashboard atau /company-dashboard/manage-member
+    const newPath = currentPath.replace(
+      /(\/company-dashboard(?:\/manage-member)?\/)[^/]+/,
+      `$1${company.id}`
+    );
+    navigate(newPath);
   };
+
+  if (!selectedCompany) return <div>Loading...</div>;
+
+  return (
+    <div className="relative z-50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none"
+      >
+        <span className="truncate">{selectedCompany.name}</span>
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4 ml-2" />
+        ) : (
+          <ChevronDown className="w-4 h-4 ml-2" />
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50">
+          <div className="py-1 max-h-60 overflow-auto">
+            {companies.map((company) => (
+              <button
+                key={company.id}
+                onClick={() => handleSelectCompany(company)}
+                className={`block w-full px-4 py-2 text-sm text-left ${
+                  company.id === selectedCompany.id
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {company.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function Sidebar() {
+  const apiUrl =
+    import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+  const [collapseShow, setCollapseShow] = React.useState("hidden");
+  const { companyId } = useParams();
+  const navigate = useNavigate();
+
+  const { selectedCompany, setSelectedCompany, companies, setCompanies } =
+    useCompanyStore();
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const token = localStorage.getItem("token");
+      try {
+        const response = await fetch(`${apiUrl}/api/my-companies`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const companyList = Array.isArray(data.data) ? data.data : [];
+          setCompanies(companyList);
+
+          // Set selected company hanya jika id cocok, jika tidak ada id ambil pertama
+          let selected = selectedCompany;
+          if (companyId) {
+          const comapnyFromUrl = companyList.find((c) => c.id === companyId);
+            if(comapnyFromUrl){
+            setSelectedCompany(selected);
+            }
+          }else if(!selectedCompany && companyList.length > 0){
+            setSelectedCompany(companyList[0])
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
+    };
+    fetchCompanies();
+  }, [companyId, apiUrl, setCompanies, setSelectedCompany]);
 
   return (
     <>
       <div className="md:left-0 md:block md:fixed md:top-0 md:bottom-0 md:overflow-y-auto md:flex-row md:flex-nowrap md:overflow-visible shadow-xl bg-white flex flex-wrap items-center justify-between relative md:w-64 z-10 py-4 px-6">
         <div className="flex justify-center mb-6">
           <Link to="/">
-          <div className="flex items-center gap-2 mr-4">
-            <img src={Logo} alt="Logo" className="h-10" />
-            <span className="font-bold text-xl text-blue-700">EVOConnect</span>
-          </div>
+            <div className="flex items-center gap-2 mr-4">
+              <img src={Logo} alt="Logo" className="h-10" />
+              <span className="font-bold text-xl text-blue-700">
+                EVOConnect
+              </span>
+            </div>
           </Link>
         </div>
         {/* Tombol Add Company */}
@@ -141,8 +127,7 @@ export default function Sidebar() {
           <Dropdown
             selectedCompany={selectedCompany}
             setSelectedCompany={setSelectedCompany}
-            onCompanyChange={handleCompanyChange}
-            companyId={companyId}
+            companies={companies}
           />
         </div>
 
@@ -170,7 +155,6 @@ export default function Sidebar() {
 
           {/* Sidebar Links */}
           <ul className="md:flex-col md:min-w-full flex flex-col list-none">
-        
             <li className="items-center">
               <Link
                 className={
@@ -260,7 +244,9 @@ export default function Sidebar() {
                     ? "text-sky-500 hover:text-sky-600"
                     : "text-gray-700 hover:text-gray-500")
                 }
-                to={`/company-dashboard/${selectedCompany ? selectedCompany.id : ""}/company-setting`}
+                to={`/company-dashboard/${
+                  selectedCompany ? selectedCompany.id : ""
+                }/company-setting`}
               >
                 <i
                   className={

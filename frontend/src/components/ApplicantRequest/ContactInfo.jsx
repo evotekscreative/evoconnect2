@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, HelpCircle, X } from 'lucide-react';
 import ConfirmationDialog from '../../components/ApplicantRequest/ConfirmationDialog.jsx';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange }) => {
     const [contactData, setContactData] = useState({
         profileImage: "https://via.placeholder.com/80",
-        title: "Software Engineer",
+        title: "",
         name: "",
         headline: "",
         location: "",
@@ -16,6 +18,28 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         linkedin: ""
     });
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [isLoadingJobTitle, setIsLoadingJobTitle] = useState(false);
+    const { jobId} = useParams();
+    
+    useEffect(() =>{
+        // const jobId = contactData.jobId || userData.jobId;
+        if(!jobId){
+            console.warn("tidak ada jobId yang ditemukan");
+            return;
+        }
+
+        setIsLoadingJobTitle(true);
+
+        axios.get(`${import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000"}/api/job-details/${jobId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
+        .then((response) => {
+            const jobTitle = response.data.data.title;
+            setContactData(prev => ({
+                ...prev,
+                title:jobTitle
+            }))
+        })
+    },[jobId])
+
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
@@ -52,6 +76,14 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         if (onContactChange) {
             onContactChange('linkedin', contactData.linkedin);
         }
+        if((contactData.phone || "").length > 20){
+            window.alert("Phone number must be at least 20 characters!");
+            return;
+        }
+        if((contactData.phone || "").length < 10){
+            window.alert("Phone number at least 10 characters!");
+            return;
+        }
         onNext();
     };
 
@@ -64,7 +96,7 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mt-10 max-h-[90vh] flex flex-col animate-slide-down overflow-y-auto max-h-[80vh]">
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-2">
-                        <h1 className="text-xl font-semibold text-gray-800">Apply for {contactData.title}</h1>
+                        <h1 className="text-xl font-semibold text-gray-800">Apply for {contactData.title ? contactData.title :  "tidak ada Job Title"}</h1>
                         <button
                             onClick={onClose}
                             className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
@@ -103,7 +135,9 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
                                     type="text"
                                     className="p-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 w-full"
                                     value={contactData.phone}
-                                    onChange={e => setContactData(prev => ({ ...prev, phone: e.target.value }))}
+                                    onChange={e => {setContactData(prev => ({ ...prev, phone: e.target.value }))
+                                    onContactChange && onContactChange("phone",e.target.value)
+                                }}
                                     placeholder="Enter your phone number"
                                     required
                                 />
@@ -133,7 +167,9 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
                                     type="text"
                                     className="p-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 w-full"
                                     value={contactData.address}
-                                    onChange={e => setContactData(prev => ({ ...prev, address: e.target.value }))}
+                                    onChange={e => {setContactData(prev => ({ ...prev, address: e.target.value }))
+                                    onContactChange && onContactChange("address",e.target.value)
+                                }}
                                     placeholder="Enter your address"
                                     required
                                 />

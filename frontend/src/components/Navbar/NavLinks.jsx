@@ -1,7 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // ✅ Tambahkan useLocation
 import { Briefcase, Users, Pen } from "lucide-react";
 
 const NavLinks = () => {
+  const location = useLocation(); // ✅ Dapatkan lokasi saat ini
+
+  // ✅ Jangan tampilkan NavLinks jika berada di halaman admin
+  if (location.pathname.startsWith("/admin")) return null;
+
   return (
     <div className="hidden md:flex gap-6 text-white font-thin text-sm items-center">
       <Link to="/jobs" className="flex items-center gap-1 hover:text-gray-200">

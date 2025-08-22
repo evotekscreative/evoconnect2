@@ -27,6 +27,7 @@ import AdminNavbar from "../../components/Admin/Navbars/AdminNavbar.jsx";
 import HeaderStats from "../../components/CompanyDashboard/Navbar/HeaderStats.jsx";
 import Alert from "../../components/Auth/alert.jsx";
 import axios from "axios";
+import useCompanyStore from "../../store/useApplicationStore.js";
 
 export default function ManageVacancy() {
   const [alert, setAlert] = useState({
@@ -65,6 +66,18 @@ export default function ManageVacancy() {
 
   const apiUrl =
     import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+
+  const { selectedCompany } = useCompanyStore();
+
+  useEffect(() => {
+    if (selectedCompany?.id) {
+      setFormData((prev) => ({
+        ...prev,
+        companyId: selectedCompany.id,
+      }));
+      localStorage.setItem("companyId", selectedCompany.id);
+    }
+  }, [selectedCompany]);
 
   useEffect(() => {
     fetchCompanyJobs();
@@ -301,9 +314,53 @@ export default function ManageVacancy() {
   // ...existing code...
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!formData.companyId) {
       alert("Please select a company first");
+      return;
+    }
+
+    if ((formData.title || "").length < 5) {
+      window.alert("title must be more than 5 !");
+      return;
+    }
+
+    if ((formData.title || "").length > 200) {
+      window.alert("title has exceed 200 !");
+      return;
+    }
+
+    if ((formData?.description || "").length < 50) {
+      window.alert("Description must be more than 50 !");
+      return;
+    }
+
+    if ((formData?.requirements || "").length < 20) {
+      window.alert("Requirements must be more than 20 !");
+      return;
+    }
+
+    if ((formData?.skills || "").length > 50) {
+      window.alert("Skills has exceeded 50 !");
+      return;
+    }
+
+    if ((formData?.benefits || "").length > 50) {
+      window.alert("Benefits has exceeded 20 !");
+      return;
+    }
+
+    if ((!formData?.workType)) {
+      window.alert("Worktype is required");
+      return;
+    }
+
+    if ((formData?.location || "").length < 2) {
+      window.alert("Location must be more than 2 !");
+      return;
+    }
+
+    if ((formData?.location || "").length > 100) {
+      window.alert("Location has exceeded 100!");
       return;
     }
 
@@ -340,67 +397,69 @@ export default function ManageVacancy() {
       };
 
       const userToken = localStorage.getItem("token");
-      const response = await axios.post(
-        `${apiUrl}/api/companies/${formData.companyId}/jobs`,
-        jobData,
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      try {
+        const response = await axios.post(
+          `${apiUrl}/api/companies/${formData.companyId}/jobs`,
+          jobData,
+          {
+            headers: {
+              Authorization: `Bearer ${userToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      } catch (error) {}
 
-      if (response.status === 201) {
-        // Add new job to list
-        const newJob = {
-          ...response.data.data,
-          company: {
-            id: formData.companyId,
-            name:
-              companies.find((c) => c.id === formData.companyId)?.name || "",
-            logo:
-              companies.find((c) => c.id === formData.companyId)?.logo || "",
-          },
-        };
+      // if (response.status === 201) {
+      //   // Add new job to list
+      //   const newJob = {
+      //     ...response.data.data,
+      //     company: {
+      //       id: formData.companyId,
+      //       name:
+      //         companies.find((c) => c.id === formData.companyId)?.name || "",
+      //       logo:
+      //         companies.find((c) => c.id === formData.companyId)?.logo || "",
+      //     },
+      //   };
 
-        setJobs((prevJobs) => [newJob, ...prevJobs]);
+      //   setJobs((prevJobs) => [newJob, ...prevJobs]);
 
-        // Show success alert
-        setAlert({
-          show: true,
-          type: "success",
-          message: "Job vacancy posted successfully!",
-        });
+      //   // Show success alert
+      //   setAlert({
+      //     show: true,
+      //     type: "success",
+      //     message: "Job vacancy posted successfully!",
+      //   });
 
-        // Auto-hide alert after 3 seconds
-        setTimeout(() => {
-          setAlert((prev) => ({ ...prev, show: false }));
-        }, 3000);
+      //   // Auto-hide alert after 3 seconds
+      //   setTimeout(() => {
+      //     setAlert((prev) => ({ ...prev, show: false }));
+      //   }, 3000);
 
-        // Reset form
-        setFormData({
-          title: "",
-          description: "",
-          requirements: "",
-          location: "",
-          jobType: "",
-          experienceLevel: "",
-          minSalary: "",
-          maxSalary: "",
-          currency: "USD",
-          skills: "",
-          benefits: "",
-          workType: "",
-          applicationDeadline: "",
-          externalLink: "",
-          companyId: "",
-        });
-      }
+      //   // Reset form
+      //   setFormData({
+      //     title: "",
+      //     description: "",
+      //     requirements: "",
+      //     location: "",
+      //     jobType: "",
+      //     experienceLevel: "",
+      //     minSalary: "",
+      //     maxSalary: "",
+      //     currency: "USD",
+      //     skills: "",
+      //     benefits: "",
+      //     workType: "",
+      //     applicationDeadline: "",
+      //     externalLink: "",
+      //     companyId: "",
+      //   });
+      // }
     } catch (error) {
       console.error("Error posting job vacancy:", error);
       setAlert({
-        show: true,
+        show: true,   
         type: "error",
         message: "Failed to post job vacancy. Please try again.",
       });

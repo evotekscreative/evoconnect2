@@ -1,7 +1,7 @@
 -- SQLBook: Code
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE tb_blog (
+CREATE TABLE IF NOT EXISTS tb_blog (
     id UUID PRIMARY KEY,
     title TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
@@ -14,7 +14,7 @@ CREATE TABLE tb_blog (
 );
 
 -- Add index for faster lookups
-CREATE INDEX idx_blog_user_id ON tb_blog(user_id);
+CREATE INDEX IF NOT EXISTS idx_blog_user_id ON tb_blog(user_id);
 -- +goose StatementEnd
 
 -- +goose Down

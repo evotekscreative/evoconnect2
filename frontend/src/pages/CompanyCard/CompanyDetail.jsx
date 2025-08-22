@@ -203,21 +203,28 @@ export default function CompanyDetail() {
   };
 
   const handleCommentSubmit = () => {
-    if (!newComment.trim()) return;
+  if (!newComment.trim()) return;
 
-    const newReview = {
-      id: Date.now(),
-      name: "User " + (userReviews.length + 1),
-      like: "0",
-      unLike: "0",
-      comment: newComment,
-      date: new Date().toISOString(),
-      description: newComment,
-    };
-
-    setUserReviews([...userReviews, newReview]);
-    setNewComment("");
+  const newReview = {
+    id: Date.now(),
+    name: "User " + (userReviews.length + 1),
+    like: "0",
+    unLike: "0",
+    comment: newComment,
+    description: newComment,
+    date: new Date().toISOString(),
   };
+
+  setUserReviews((prevReviews) => {
+    const updated = [...prevReviews, newReview];
+    console.log("✅ New comment added:", updated);
+    return updated;
+  });
+
+  setNewComment("");
+};
+
+
 
   const handleAddPost = (newPostContent) => {
     if (!newPostContent.trim()) return;

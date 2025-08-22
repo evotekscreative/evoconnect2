@@ -30,6 +30,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import relativeTime from "dayjs/plugin/relativeTime"; // <- Tambahkan ini
+import { toast } from "sonner";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1926,7 +1927,7 @@ export default function GroupPage() {
 
       showAlert("success", "Post created successfully");
       fetchGroupPosts();
-      fetchGroupPosts;
+      fetchPinnedPosts();
     } catch (error) {
       console.error("Error creating post:", error);
       showAlert("error", "Failed to create post");
@@ -2315,7 +2316,12 @@ export default function GroupPage() {
         setPosts(posts.filter((post) => post.id !== postId));
 
         // Set postingan yang dipin
-        setPinnedPosts([response.data.data]);
+        setPinnedPosts((prev) => {
+  // Hindari duplikasi
+        const newPinned = response.data.data;
+        const exists = prev.some((p) => p.id === newPinned.id);
+        return exists ? prev : [newPinned, ...prev];
+      });
 
         handleClosePostOptions();
       }
@@ -2325,37 +2331,40 @@ export default function GroupPage() {
     }
   };
   const handleUnpinPost = async (postId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${apiUrl}/api/posts/${postId}/unpin`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        showAlert("success", "Post unpinned successfully");
-
-        // Tambahkan postingan yang diunpin ke daftar postingan biasa
-        setPosts([response.data.data, ...posts]);
-
-        // Hapus dari daftar pinned posts
-        setPinnedPosts([]);
-
-        handleClosePostOptions();
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${apiUrl}/api/posts/${postId}/unpin`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    } catch (error) {
-      console.error("Error unpinning post:", error);
-      showAlert(
-        "error",
-        error.response?.data?.message || "Failed to unpin post"
+    );
+
+    if (response.status === 200) {
+      showAlert("success", "Post unpinned successfully");
+
+      const unpinned = response.data.data;
+
+      // ✅ Cegah duplikat di recent posts
+      setPosts((prev) =>
+        prev.some((p) => p.id === unpinned.id)
+          ? prev
+          : [unpinned, ...prev]
       );
+
+      // Hapus dari daftar pinned posts
+      setPinnedPosts((prev) => prev.filter((p) => p.id !== postId));
+
+      handleClosePostOptions();
     }
-  };
+  } catch (error) {
+    console.error("Error unpinning post:", error);
+    showAlert("error", error.response?.data?.message || "Failed to unpin post");
+  }
+};
 
   const fetchMemberPendingPosts = async () => {
     if (!isGroupMember) return;
@@ -3359,7 +3368,9 @@ export default function GroupPage() {
                       No posts yet
                     </div>
                   ) : (
-                    posts.map(renderPost)
+                    posts
+                    .filter((post) => !pinnedPosts.some((pinned) => pinned.id === post.id))
+                    .map(renderPost)
                   )}
                 </div>
               </div>
@@ -4013,14 +4024,12 @@ export default function GroupPage() {
                       <h3 className="mb-3 text-lg font-medium">Post Options</h3>
 
                       {/* Options for current user's post */}
-                      {posts.find((p) => p.id === selectedPostId)?.user?.id ===
-                        currentUserId && (
+                      {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id === currentUserId && (
                         <>
                           {/* Admin can pin/unpin any post including their own */}
                           {isCurrentUserAdmin && (
                             <>
-                              {posts.find((p) => p.id === selectedPostId)
-                                ?.is_pinned ? (
+                              {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.is_pinned ? (
                                 <button
                                   className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                                   onClick={() =>
@@ -4093,11 +4102,9 @@ export default function GroupPage() {
 
                       {/* Options for admin viewing other users' posts */}
                       {isCurrentUserAdmin &&
-                        posts.find((p) => p.id === selectedPostId)?.user?.id !==
-                          currentUserId && (
+                        [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id !== currentUserId && (
                           <>
-                            {posts.find((p) => p.id === selectedPostId)
-                              ?.is_pinned ? (
+                            {[...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.is_pinned ? (
                               <button
                                 className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                                 onClick={() => handleUnpinPost(selectedPostId)}
@@ -4153,20 +4160,18 @@ export default function GroupPage() {
 
                       {/* Options for regular users viewing others' posts */}
                       {!isCurrentUserAdmin &&
-                        posts.find((p) => p.id === selectedPostId)?.user?.id !==
+                        [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId)?.user?.id !==
                           currentUserId && (
                           <>
                             <button
                               className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
                               onClick={() => {
-                                // Handle connect with user
-                                // You'll need to implement this function
-                                handleConnectWithUser(
-                                  posts.find((p) => p.id === selectedPostId)
-                                    .user.id
-                                );
-                                handleClosePostOptions();
-                              }}
+                              const selectedPost = [...posts, ...pinnedPosts].find((p) => p.id === selectedPostId);
+                              if (selectedPost && selectedPost.user.id !== currentUserId) {
+                                handleConnectWithUser(selectedPost.user.id);
+                              }
+                              handleClosePostOptions();
+                            }}
                             >
                               <UserPlus size={16} className="mr-2" />
                               Connect With User

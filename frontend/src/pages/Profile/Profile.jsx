@@ -144,7 +144,6 @@ export default function ProfilePage() {
   const [experienceForm, setExperienceForm] = useState({
     jobTitle: "",
     companyName: "",
-    location: "",
     start_month: "Month",
     start_year: "Year",
     end_month: "Month",
@@ -424,6 +423,42 @@ export default function ProfilePage() {
   // Handle Experience Form Submission
   const handleExperienceSubmit = async (e) => {
     e.preventDefault();
+
+        if((experienceForm.job_title || "").length < 1){
+      // showAlert("error","jobTitle must be more than 1");
+      window.alert("jobTitle must be more than 1");
+      return;
+    }
+    if((experienceForm.job_title || "").length > 100){
+      // showAlert("error","jobTitle is exceed 100");
+      window.alert("jobTitle is exceed 100");
+      return;
+    }
+
+    if((experienceForm.company_name || "").length < 1){
+      // showAlert("error","CompanyName must be more than 1");
+      window.alert("CompanyName must be more than 1");
+      return;
+    }
+    if((experienceForm.company_name || "").length > 100){
+      // showAlert("error","CompanyName is exceed 100");
+      window.alert("CompanyName is exceed 100");
+      return;
+    }
+    if((experienceForm.caption || "").length > 1000){
+      // showAlert("error","Caption is exceed 1000");
+      window.alert("Caption is exceed 1000");
+      return;
+    }
+
+    if((!experienceForm.start_year || experienceForm.start_year === "Year")){
+      window.alert("Start day must be selected");
+      return;
+    }
+    if((!experienceForm.start_month || experienceForm.start_month === "Moth")){
+      window.alert("Start day must be selected");
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -431,7 +466,6 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append("job_title", experienceForm.job_title);
       formData.append("company_name", experienceForm.company_name);
-      formData.append("location", experienceForm.location);
       formData.append("start_month", experienceForm.start_month);
       formData.append("start_year", experienceForm.start_year);
       formData.append("end_month", experienceForm.end_month);
@@ -522,6 +556,7 @@ export default function ProfilePage() {
       educationForm.start_year === "Year"
     ) {
       showAlert("error", "Please fill all required fields!");
+      window.alert("Please fill all required fields!")
       setIsLoading(false);
       return;
     }
@@ -666,6 +701,15 @@ export default function ProfilePage() {
   };
 
   const handleExperienceFileChange = (e) => {
+      const file = e.target.files[0];
+  if (!file) return;
+
+  // Validasi MIME type
+  if (!file.type.startsWith("image/")) {
+    window.alert("File harus berupa gambar (jpg, png, dll)");
+    e.target.value = ""; // reset input file
+    return;
+  }
     setExperienceForm({
       ...experienceForm,
       photo: e.target.files[0],
@@ -673,6 +717,15 @@ export default function ProfilePage() {
   };
 
   const handleEducationFileChange = (e) => {
+          const file = e.target.files[0];
+  if (!file) return;
+
+  // Validasi MIME type
+  if (!file.type.startsWith("image/")) {
+    window.alert("File harus berupa gambar (jpg, png, dll)");
+    e.target.value = ""; // reset input file
+    return;
+  }
     setEducationForm({
       ...educationForm,
       schoolLogo: e.target.files[0],

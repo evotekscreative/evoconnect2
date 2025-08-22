@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Grip } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Import Link dari react-router-dom
+import { Link, useLocation } from 'react-router-dom'; // ✅ Tambahkan useLocation
 
 const Other = () => {
+  const location = useLocation(); // ✅ Ambil lokasi path saat ini
+
+  // ✅ Jangan tampilkan dropdown jika sedang di halaman admin
+  if (location.pathname.startsWith("/admin")) return null;
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -32,14 +37,14 @@ const Other = () => {
           <Link
             to="/company-management/my-company"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            onClick={() => setIsOpen(false)} // Menutup dropdown setelah diklik
+            onClick={() => setIsOpen(false)}
           >
             Company Management
           </Link>
-           <Link
+          <Link
             to="/groups"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            onClick={() => setIsOpen(false)} // Menutup dropdown setelah diklik
+            onClick={() => setIsOpen(false)}
           >
             Groups
           </Link>

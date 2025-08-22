@@ -17,7 +17,7 @@ func NewCompanyEditRequestRepository() CompanyEditRequestRepository {
 
 func (repository *CompanyEditRequestRepositoryImpl) Create(ctx context.Context, tx *sql.Tx, editRequest domain.CompanyEditRequest) domain.CompanyEditRequest {
 	SQL := `INSERT INTO company_edit_requests (id, company_id, user_id, requested_changes, current_data, status, created_at, updated_at) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := tx.ExecContext(ctx, SQL,
 		editRequest.Id, editRequest.CompanyId, editRequest.UserId,
@@ -30,8 +30,8 @@ func (repository *CompanyEditRequestRepositoryImpl) Create(ctx context.Context, 
 
 func (repository *CompanyEditRequestRepositoryImpl) Update(ctx context.Context, tx *sql.Tx, editRequest domain.CompanyEditRequest) domain.CompanyEditRequest {
 	SQL := `UPDATE company_edit_requests SET 
-            status = $1, rejection_reason = $2, reviewed_by = $3, reviewed_at = $4, updated_at = $5
-            WHERE id = $6`
+			status = $1, rejection_reason = $2, reviewed_by = $3, reviewed_at = $4, updated_at = $5
+			WHERE id = $6`
 
 	_, err := tx.ExecContext(ctx, SQL,
 		editRequest.Status, editRequest.RejectionReason, editRequest.ReviewedBy,
@@ -43,15 +43,15 @@ func (repository *CompanyEditRequestRepositoryImpl) Update(ctx context.Context, 
 
 func (repository *CompanyEditRequestRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, editRequestId uuid.UUID) (domain.CompanyEditRequest, error) {
 	SQL := `SELECT 
-                cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
-                cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
-                cer.created_at, cer.updated_at,
-                c.name, c.linkedin_url, c.website, c.industry, c.size, c.type, c.logo, c.tagline, c.is_verified,
-                u.id, u.name, u.email, u.username, u.photo
-            FROM company_edit_requests cer
-            LEFT JOIN companies c ON cer.company_id = c.id
-            LEFT JOIN users u ON cer.user_id = u.id
-            WHERE cer.id = $1`
+				cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
+				cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
+				cer.created_at, cer.updated_at,
+				c.name, c.linkedin_url, c.website, c.industry, c.size, c.type, c.logo, c.tagline, c.is_verified,
+				u.id, u.name, u.email, u.username, u.photo
+			FROM company_edit_requests cer
+			LEFT JOIN companies c ON cer.company_id = c.id
+			LEFT JOIN users u ON cer.user_id = u.id
+			WHERE cer.id = $1`
 
 	rows, err := tx.QueryContext(ctx, SQL, editRequestId)
 	helper.PanicIfError(err)
@@ -127,14 +127,14 @@ func (repository *CompanyEditRequestRepositoryImpl) FindById(ctx context.Context
 
 func (repository *CompanyEditRequestRepositoryImpl) FindByCompanyId(ctx context.Context, tx *sql.Tx, companyId uuid.UUID) []domain.CompanyEditRequest {
 	SQL := `SELECT 
-                cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
-                cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
-                cer.created_at, cer.updated_at,
-                u.name, u.email, u.username, u.photo
-            FROM company_edit_requests cer
-            LEFT JOIN users u ON cer.user_id = u.id
-            WHERE cer.company_id = $1 
-            ORDER BY cer.created_at DESC`
+				cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
+				cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
+				cer.created_at, cer.updated_at,
+				u.name, u.email, u.username, u.photo
+			FROM company_edit_requests cer
+			LEFT JOIN users u ON cer.user_id = u.id
+			WHERE cer.company_id = $1 
+			ORDER BY cer.created_at DESC`
 
 	rows, err := tx.QueryContext(ctx, SQL, companyId)
 	helper.PanicIfError(err)
@@ -185,14 +185,14 @@ func (repository *CompanyEditRequestRepositoryImpl) FindByCompanyId(ctx context.
 
 func (repository *CompanyEditRequestRepositoryImpl) FindByUserId(ctx context.Context, tx *sql.Tx, userId uuid.UUID) []domain.CompanyEditRequest {
 	SQL := `SELECT 
-                cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
-                cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
-                cer.created_at, cer.updated_at,
-                c.name
-            FROM company_edit_requests cer
-            LEFT JOIN companies c ON cer.company_id = c.id
-            WHERE cer.user_id = $1 
-            ORDER BY cer.created_at DESC`
+				cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
+				cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
+				cer.created_at, cer.updated_at,
+				c.name
+			FROM company_edit_requests cer
+			LEFT JOIN companies c ON cer.company_id = c.id
+			WHERE cer.user_id = $1 
+			ORDER BY cer.created_at DESC`
 
 	rows, err := tx.QueryContext(ctx, SQL, userId)
 	helper.PanicIfError(err)
@@ -237,16 +237,16 @@ func (repository *CompanyEditRequestRepositoryImpl) FindByUserId(ctx context.Con
 
 func (repository *CompanyEditRequestRepositoryImpl) FindByStatus(ctx context.Context, tx *sql.Tx, status domain.CompanyEditRequestStatus, limit, offset int) []domain.CompanyEditRequest {
 	SQL := `SELECT 
-                cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
-                cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
-                cer.created_at, cer.updated_at,
-                c.name, u.name, u.photo
-            FROM company_edit_requests cer
-            LEFT JOIN companies c ON cer.company_id = c.id
-            LEFT JOIN users u ON cer.user_id = u.id
-            WHERE cer.status = $1 
-            ORDER BY cer.created_at DESC
-            LIMIT $2 OFFSET $3`
+				cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
+				cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
+				cer.created_at, cer.updated_at,
+				c.name, u.name, u.photo
+			FROM company_edit_requests cer
+			LEFT JOIN companies c ON cer.company_id = c.id
+			LEFT JOIN users u ON cer.user_id = u.id
+			WHERE cer.status = $1 
+			ORDER BY cer.created_at DESC
+			LIMIT $2 OFFSET $3`
 
 	rows, err := tx.QueryContext(ctx, SQL, status, limit, offset)
 	helper.PanicIfError(err)
@@ -301,15 +301,15 @@ func (repository *CompanyEditRequestRepositoryImpl) FindByStatus(ctx context.Con
 
 func (repository *CompanyEditRequestRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx, limit, offset int) []domain.CompanyEditRequest {
 	SQL := `SELECT 
-                cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
-                cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
-                cer.created_at, cer.updated_at,
-                c.name, u.name, u.photo
-            FROM company_edit_requests cer
-            LEFT JOIN companies c ON cer.company_id = c.id
-            LEFT JOIN users u ON cer.user_id = u.id
-            ORDER BY cer.created_at DESC
-            LIMIT $1 OFFSET $2`
+				cer.id, cer.company_id, cer.user_id, cer.requested_changes, cer.current_data, 
+				cer.status, cer.rejection_reason, cer.reviewed_by, cer.reviewed_at, 
+				cer.created_at, cer.updated_at,
+				c.name, u.name, u.photo
+			FROM company_edit_requests cer
+			LEFT JOIN companies c ON cer.company_id = c.id
+			LEFT JOIN users u ON cer.user_id = u.id
+			ORDER BY cer.created_at DESC
+			LIMIT $1 OFFSET $2`
 
 	rows, err := tx.QueryContext(ctx, SQL, limit, offset)
 	helper.PanicIfError(err)

@@ -71,7 +71,7 @@ export default function ProfileEducationModal({
             onChange={handleEducationChange}
             placeholder="Degree"
             className="w-full p-2 border rounded"
-            required
+            // required
           />
           <input
             type="text"
@@ -80,16 +80,16 @@ export default function ProfileEducationModal({
             onChange={handleEducationChange}
             placeholder="School Name"
             className="w-full p-2 border rounded"
-            required
+            // required
           />
-          <input
+          {/* <input
             type="text"
             name="location"
             value={educationForm.location}
             onChange={handleEducationChange}
             placeholder="Location (City, Country)"
             className="w-full p-2 border rounded"
-          />
+          /> */}
           <div className="flex gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">
@@ -101,7 +101,7 @@ export default function ProfileEducationModal({
                   value={educationForm.start_month}
                   onChange={handleEducationChange}
                   className="w-full p-2 border rounded"
-                  required
+                  // required
                 >
                   <option value="Month" disabled>
                     Month
@@ -130,7 +130,7 @@ export default function ProfileEducationModal({
                   value={educationForm.start_year}
                   onChange={handleEducationChange}
                   className="w-full p-2 border rounded"
-                  required
+                  // required
                 >
                   <option value="Year" disabled>
                     Month

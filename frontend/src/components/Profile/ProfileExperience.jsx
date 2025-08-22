@@ -75,12 +75,12 @@ export default function ProfileExperience({
                         ? "Now"
                         : formatDate(exp.end_month, exp.end_year)}
                     </p>
-                    {exp.location && (
+                    {/* {exp.location && (
                       <p className="text-gray-500 text-sm">{exp.location}</p>
-                    )}
+                    )} */}
                     {exp.caption && (
                       <div>
-                        <p className="text-gray-600 mt-2 break-words whitespace-pre-line w-full">
+                        <p className="text-gray-600 break-words whitespace-pre-line w-full">
                           {isLong && !isExpanded
                             ? exp.caption.slice(0, 500) + "..."
                             : exp.caption}

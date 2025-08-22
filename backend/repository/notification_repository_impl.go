@@ -31,6 +31,22 @@ func (repository *NotificationRepositoryImpl) Save(ctx context.Context, tx *sql.
 		) RETURNING id, created_at, updated_at
 	`
 
+	var refId interface{} = nil
+if notification.ReferenceId != nil {
+    refId = *notification.ReferenceId
+}
+
+var refType interface{} = nil
+if notification.ReferenceType != nil {
+    refType = *notification.ReferenceType
+}
+
+var actorId interface{} = nil
+if notification.ActorId != nil {
+    actorId = *notification.ActorId
+}
+
+
 	err := tx.QueryRowContext(
 		ctx,
 		query,
@@ -41,9 +57,9 @@ func (repository *NotificationRepositoryImpl) Save(ctx context.Context, tx *sql.
 		notification.Title,
 		notification.Message,
 		notification.Status,
-		notification.ReferenceId,
-		notification.ReferenceType,
-		notification.ActorId,
+		refId,
+		refType,
+		actorId,
 		now,
 		now,
 	).Scan(&notification.Id, &notification.CreatedAt, &notification.UpdatedAt)

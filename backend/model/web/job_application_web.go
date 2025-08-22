@@ -12,7 +12,7 @@ type CreateJobApplicationRequest struct {
 	ContactInfo        ContactInfoRequest    `json:"contact_info" validate:"required"`
 	CvFile             *multipart.FileHeader `json:"-"`                // For new CV upload
 	ExistingCvPath     *string               `json:"existing_cv_path"` // For using existing CV
-	MotivationLetter   *string               `json:"motivation_letter" validate:"omitempty,min=50,max=2000"`
+	MotivationLetter   *string               `json:"motivation_letter" validate:"omitempty,max=2000"`
 	CoverLetter        *string               `json:"cover_letter" validate:"omitempty,max=3000"`
 	ExpectedSalary     *float64              `json:"expected_salary" validate:"omitempty,min=0"`
 	AvailableStartDate *time.Time            `json:"available_start_date"`
@@ -22,7 +22,7 @@ type UpdateJobApplicationRequest struct {
 	ContactInfo        ContactInfoRequest    `json:"contact_info" validate:"required"`
 	CvFile             *multipart.FileHeader `json:"-"`                // For new CV upload
 	ExistingCvPath     *string               `json:"existing_cv_path"` // For using existing CV
-	MotivationLetter   *string               `json:"motivation_letter" validate:"omitempty,min=50,max=2000"`
+	MotivationLetter   *string               `json:"motivation_letter" validate:"omitempty,max=2000"`
 	CoverLetter        *string               `json:"cover_letter" validate:"omitempty,max=3000"`
 	ExpectedSalary     *float64              `json:"expected_salary" validate:"omitempty,min=0"`
 	AvailableStartDate *time.Time            `json:"available_start_date"`

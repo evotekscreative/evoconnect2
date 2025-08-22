@@ -215,8 +215,16 @@ export default function Groups() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    if (file) {
+    // ✅ validasi MIME type
+    if (!file.type.startsWith("image/")) {
+      window.alert("File harus berupa gambar (jpg, png, dll)");
+      e.target.value = ""; // reset input file
+      return;
+    }
     setGroupForm((prev) => ({ ...prev, image: file }));
   };
+}
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
@@ -241,6 +249,16 @@ export default function Groups() {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log(formData.name)
+
+      if((groupForm.name || "").length < 3){
+        window.alert("Name Group is less then 3");
+        return;
+      }
+      if((groupForm.name || "").length > 100){
+        window.alert("Name Group is more then 100");
+        return;
+      }
 
       const newGroup = {
         ...response.data.data,

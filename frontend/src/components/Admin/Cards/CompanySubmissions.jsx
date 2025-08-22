@@ -112,6 +112,7 @@ const CompanySubmissions = ({ color = "light" }) => {
       const token = localStorage.getItem("adminToken");
       if (!token) {
         toast.error("Authentication token missing. Please log in again.");
+        setIsReviewing(false)
         return;
       }
 
@@ -163,9 +164,14 @@ const CompanySubmissions = ({ color = "light" }) => {
       let errorMessage = "Failed to review company submission";
       toast.error(errorMessage);
       setIsReviewing(false);
+      toast.error(error.message || "Faulsed to review company submission  ")
+    }finally{
+      setIsReviewing(false)
     }
   };
+  
   const handleApprove = (submissionId) => {
+    setCurrentSubmissionId(submissionId);
     handleReviewAction(submissionId, "approved");
   };
 
@@ -487,7 +493,6 @@ const CompanySubmissions = ({ color = "light" }) => {
           </div>
         </div>
       )}
-      /* Enhanced Detail Modal */
       {isModalOpen && selectedSubmission && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">

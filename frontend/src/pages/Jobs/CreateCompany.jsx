@@ -208,7 +208,7 @@ export default function CreateCompany() {
         return;
       }
       console.error("Submission error:", error);
-      showAlert("error", error.message || "Failed to submit company");
+      showAlert("error", "Failed to submit company");
     } finally {
       setIsSubmitting(false);
     }

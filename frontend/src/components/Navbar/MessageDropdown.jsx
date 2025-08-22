@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom"; // ✅ tambahkan useLocation
 import axios from "axios";
 import Pusher from "pusher-js";
-import { MessageSquare, Briefcase as JobIcon } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 const MessageDropdown = () => {
-      const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+  const location = useLocation(); // ✅ lokasi saat ini
+
+  // Jangan tampilkan komponen jika berada di halaman admin
+  if (location.pathname.startsWith("/admin")) return null; // ✅ tambahkan ini
+
+  const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
   const navigate = useNavigate();
   const [isMsgOpen, setIsMsgOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -20,6 +25,8 @@ const MessageDropdown = () => {
   const msgRef = useRef(null);
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
+
+  // ... kode lainnya tetap sama
 
   // Function to extract user ID from JWT token
   const getUserIdFromToken = (token) => {

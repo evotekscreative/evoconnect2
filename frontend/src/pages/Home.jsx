@@ -319,6 +319,8 @@ export default function SocialNetworkFeed() {
 
   const [randomJobs, setRandomJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const [postCompany, setPostCompany] = useState([]);
+  const [isCompanyPost, setIsCompanyPost] = useState(false);
 
   const fetchRandomJobs = async () => {
     try {
@@ -384,6 +386,143 @@ export default function SocialNetworkFeed() {
       setLoadingSuggested(false);
     }
   };
+
+  // Tambahkan fungsi fetchCompanyPosts di dekat fungsi fetchPosts
+  const fetchCompanyPosts = async () => {
+    try {
+      const userToken = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:3000/api/company-posts",
+        {
+          headers: { Authorization: `Bearer ${userToken}` },
+        }
+      );
+      if (response.data?.data) {
+        // Sesuaikan dengan struktur response.
+        // Misalnya, jika response.data.data.posts adalah array posting perusahaan:
+        const companyPosts = response.data.data.posts || response.data.data;
+        // Format data jika perlu, misalnya tambahkan properti penanda
+        // setPostCompany(companyPosts)
+        const formattedCompanyPosts = companyPosts.map((post) => ({
+          id: post.id,
+          content: post.content,
+          images:
+            post.images?.map((img) =>
+              img.startsWith("http") ? img : `${apiUrl}/${img}`
+            ) || [],
+          user: post.creator || {
+            id: post.creator_id,
+            name: "Unknown Creator",
+            initials: "UC",
+            username: "unknown_creator",
+          },
+          group: post.group || null,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          created_at: post.created_at,
+          visibility: post.visibility || "public",
+          isLiked: post.is_liked || false,
+          isCompanyPost: true,
+        }));
+        console.log();
+        setPostCompany(formattedCompanyPosts);
+        return formattedCompanyPosts;
+      }
+    } catch (error) {
+      console.error("Failed fetching company posts:", error);
+    }
+    return [];
+  };
+
+  const fetchAllPosts = useCallback(
+    async (pageNum = 0, append = false, isCompanyPost) => {
+      try {
+        if (pageNum === 0) {
+          setLoadingPosts(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+
+        const userToken = localStorage.getItem("token");
+        const limit = 10; // Batasi jumlah posting per panggilan
+        const offset = pageNum * limit;
+
+        // Fetch posting umum
+        const endPoint = isCompanyPost ? `/api/company-posts` : `/api/posts`;
+        const response = await axios.get(
+          `${apiUrl}${endPoint}?limit=${limit}&offset=${offset}`,
+          { headers: { Authorization: `Bearer ${userToken}` } }
+        );
+        console.log("Raw /api/posts:", response.data.data);
+        let formattedPosts = [];
+        if (response.data?.data) {
+          formattedPosts = response.data.data
+            .filter((post) => !post.isCompanyPost)
+            .map((post) => ({
+              id: post.id,
+              content: post.content,
+              images:
+                post.images?.map((img) =>
+                  img.startsWith("http") ? img : `${apiUrl}/${img}`
+                ) || [],
+              user: post.user || {
+                id: post.user_id,
+                name: "Unknown User",
+                initials: "UU",
+                username: "unknown",
+              },
+              group: post.group || null,
+              likes_count: post.likes_count || 0,
+              comments_count: post.comments_count || 0,
+              created_at: post.created_at,
+              visibility: post.visibility || "public",
+              isLiked: post.is_liked || false,
+              isCompanyPost: post.isCompanyPost || false,
+            }));
+        }
+
+        // Fetch posting dari perusahaan
+        const companyPosts = await fetchCompanyPosts();
+        //
+        let allPosts = [];
+
+        if (isCompanyPost) {
+          allPosts = companyPosts;
+        } else {
+          allPosts = formattedPosts;
+        }
+
+        if (append) {
+          setPosts((prevPosts) => [...prevPosts, ...allPosts]);
+        } else {
+          setPosts(allPosts);
+        }
+
+        // Update hasMore berdasarkan jumlah data yang diterima
+        if (formattedPosts.length < limit && companyPosts.length === 0) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
+
+        if (pageNum > 0) {
+          setPage(pageNum);
+        }
+      } catch (err) {
+        console.error("Failed to fetch posts:", err);
+        setError("Failed to load posts. Please try again later.");
+      } finally {
+        setLoadingPosts(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [apiUrl]
+  );
+
+  useEffect(() => {
+    // Fetch posting pertama kali
+    fetchAllPosts(0, false);
+  }, [fetchAllPosts]);
 
   const fetchProfileViews = async () => {
     try {
@@ -767,26 +906,28 @@ export default function SocialNetworkFeed() {
 
         if (response.data?.data) {
           // Transformasi data setelah fetch
-          const formattedPosts = response.data.data.map((post) => ({
-            id: post.id,
-            content: post.content,
-            images:
-              post.images?.map((img) =>
-                img.startsWith("http") ? img : `${apiUrl}/${img}`
-              ) || [],
-            user: post.user || {
-              id: post.user_id,
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-            },
-            group: post.group || null,
-            likes_count: post.likes_count || 0,
-            comments_count: post.comments_count || 0,
-            created_at: post.created_at, // Jangan beri fallback
-            visibility: post.visibility || "public",
-            isLiked: post.is_liked || false,
-          }));
+          const formattedPosts = response.data.data
+            .filter((post) => !post.isCompanyPost)
+            .map((post) => ({
+              id: post.id,
+              content: post.content,
+              images:
+                post.images?.map((img) =>
+                  img.startsWith("http") ? img : `${apiUrl}/${img}`
+                ) || [],
+              user: post.user || {
+                id: post.user_id,
+                name: "Unknown User",
+                initials: "UU",
+                username: "unknown",
+              },
+              group: post.group || null,
+              likes_count: post.likes_count || 0,
+              comments_count: post.comments_count || 0,
+              created_at: post.created_at, // Jangan beri fallback
+              visibility: post.visibility || "public",
+              isLiked: post.is_liked || false,
+            }));
 
           // Update state posts
           // Update state posts
@@ -1058,7 +1199,7 @@ export default function SocialNetworkFeed() {
     setReplyText("");
   };
 
-  const fetchComments = async (postId) => {
+  const fetchComments = async (postId, isCompanyPost) => {
     try {
       setLoadingComments((prev) => ({ ...prev, [postId]: true }));
       setCommentError(null);
@@ -1071,44 +1212,54 @@ export default function SocialNetworkFeed() {
       }
 
       const userToken = localStorage.getItem("token");
+      const endpoint = isCompanyPost
+        ? `/api/company-posts/${postId}/comments`
+        : `/api/post-comments/${postId}`;
       const response = await axios.get(
-        `${apiUrl}/api/post-comments/${postId}?limit=10&offset=0&includeReplies=true`,
+        `${apiUrl}${endpoint}?limit=10&offset=0&includeReplies=true`,
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
           },
         }
       );
 
-      const commentsWithReplies = (response.data?.data?.comments || []).map(
-        (comment) => {
-          // Muat replies dari cache jika ada
-          const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
-          const replies = cachedReplies
-            ? JSON.parse(cachedReplies)
-            : Array.isArray(comment.replies)
-            ? comment.replies
-            : [];
+      const rawComments = response.data?.data?.comments || [];
 
-          return {
-            id: comment.id || Math.random().toString(36).substr(2, 9),
-            content: comment.content || "",
-            user: comment.user || {
-              name: "Unknown User",
-              initials: "UU",
-              username: "unknown",
-              profile_photo: null,
-            },
-            replies: replies,
-            repliesCount: comment.replies_count || replies.length,
-          };
-        }
-      );
+const commentsWithReplies = await Promise.all(
+  rawComments.map(async (comment) => {
+    // ✅ Ambil replies dari localStorage, kalau tidak ada, fetch dari API
+    let replies = [];
+    const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
+    
+    if (cachedReplies) {
+      replies = JSON.parse(cachedReplies);
+    } else {
+      // Ambil reply dari API
+      const fetched = await fetchReplies(comment.id, isCompanyPost );
+      replies = Array.isArray(fetched) ? fetched : [];
+    }
 
+    return {
+      id: comment.id || Math.random().toString(36).substr(2, 9),
+      content: comment.content || "",
+      user: comment.user || {
+        name: "Unknown User",
+        initials: "UU",
+        username: "unknown",
+        profile_photo: null,
+      },
+      replies: replies,
+      repliesCount: comment.replies_count || replies.length,
+    };
+  })
+);
       setComments((prev) => ({
         ...prev,
         [postId]: commentsWithReplies,
       }));
+      
     } catch (error) {
       console.error("Failed to fetch comments:", error);
       setCommentError("Failed to load comments");
@@ -1117,16 +1268,20 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const fetchReplies = async (commentId) => {
+
+  const fetchReplies = async (commentId,isCompanyPost) => {
+  console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
+  
+
     try {
       const userToken = localStorage.getItem("token");
-      const response = await axios.get(
-        `${apiUrl}/api/comments/${commentId}/replies`,
-        {
-          headers: { Authorization: `Bearer ${userToken}` },
-        }
-      );
-
+      const endPoint = isCompanyPost
+        ? `/api/company-post-comments/${commentId}`
+        : `/api/comments/${commentId}`;
+      const response = await axios.get(`${apiUrl}${endPoint}/replies`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      console.log("Company replies response:", response.data);
       const replies = response.data.data.comments || [];
 
       const processedReplies = replies.map((reply) => ({
@@ -1165,6 +1320,7 @@ export default function SocialNetworkFeed() {
               }
             : null
           : null,
+      isCompanyPost:isCompanyPost
       }));
 
       setAllReplies((prev) => ({
@@ -1176,13 +1332,16 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const fetchAllReplies = async (commentId) => {
+  const fetchAllReplies = async (commentId, isCompanyPost) => {
     try {
       setLoadingComments((prev) => ({ ...prev, [commentId]: true }));
 
       const userToken = localStorage.getItem("token");
+      const endpoint = isCompanyPost
+        ? `/api/company-post-comments/${commentId}`
+        : `/api/comments/${commentId}`;
       const response = await axios.get(
-        `${apiUrl}/api/comments/${commentId}/replies?limit=100`,
+        `${apiUrl}/${endpoint}/replies?limit=100`,
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
@@ -1293,10 +1452,13 @@ export default function SocialNetworkFeed() {
     loadCachedReplies();
   }, []);
 
-  const openCommentModal = (postId) => {
+  console.log("comments",comments)
+
+  const openCommentModal = (postId, postIsCompanyPost) => {
     setCurrentPostId(postId);
     setShowCommentModal(true);
-    fetchComments(postId);
+    setIsCompanyPost(postIsCompanyPost);
+    fetchComments(postId, postIsCompanyPost);
   };
 
   const handleAddComment = async () => {
@@ -1307,8 +1469,11 @@ export default function SocialNetworkFeed() {
 
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost
+        ? `/api/company-posts/${currentPostId}/comments`
+        : `/api/post-comments/${currentPostId}`;
       await axios.post(
-        `${apiUrl}/api/post-comments/${currentPostId}`,
+        `${apiUrl}${endPoint}`,
         { content: commentText },
         {
           headers: {
@@ -1318,19 +1483,19 @@ export default function SocialNetworkFeed() {
         }
       );
 
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === currentPostId) {
-            return {
-              ...post,
-              comments_count: (post.comments_count || 0) + 1, // Pastikan ada fallback
-            };
-          }
-          return post;
-        })
-      );
+      // setPosts((prevPosts) =>
+      //   prevPosts.map((post) => {
+      //     if (post.id === currentPostId) {
+      //       return {
+      //         ...post,
+      //         comments_count: (post.comments_count || 0) + 1, // Pastikan ada fallback
+      //       };
+      //     }
+      //     return post;
+      //   })
+      // );
 
-      fetchComments(currentPostId);
+      fetchComments(currentPostId, isCompanyPost);
       setCommentText("");
       setCommentError(null);
       setAlertInfo({
@@ -1351,7 +1516,7 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleReply = async (commentId, replyToUser = null) => {
+  const handleReply = async (commentId, replyToUser = null, replyContent = replyText, postId ) => {
     if (!commentId || !replyText.trim()) return;
 
     try {
@@ -1364,22 +1529,35 @@ export default function SocialNetworkFeed() {
       }
 
       // Jika membuat reply baru
+      const endPoint = isCompanyPost
+        ? `/api/company-posts/${postId}/comments/reply`
+        : `/api/comments/${commentId}/replies`;
+      // console.log("isCompanyPost:", isCompanyPost, "endpoint:", endPoint);
       const response = await axios.post(
-        `${apiUrl}/api/comments/${commentId}/replies`,
+        `${apiUrl}${endPoint}`,
         {
-          content: replyText,
-          reply_to_id: replyingTo, // Include the reply_to_id if this is a reply to another reply
+          parent_id:commentId,
+          content: replyContent, 
         },
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
             "Content-Type": "application/json",
           },
+        },{
+          parent_id:commentId,
+          content: replyContent,
         }
+
       );
+      console.log("Reply response:", response);
+
 
       // Create the new reply object with all necessary data
-      const newReply = {
+      if (!response.data || !response.data.data) {
+        throw new Error("No reply data received from the server.");
+      }
+            const newReply = {  
         ...response.data.data,
         id: response.data.data.id || Math.random().toString(36).substr(2, 9),
         user: {
@@ -1401,6 +1579,7 @@ export default function SocialNetworkFeed() {
             }
           : null,
         created_at: new Date().toISOString(),
+        isCompanyPost: isCompanyPost
       };
 
       // Update state based on whether this is a reply to a comment or another reply
@@ -1466,6 +1645,7 @@ export default function SocialNetworkFeed() {
         type: "success",
         message: "Reply posted successfully!",
       });
+      console.log("Sending reply", { postId, commentId, replyContent });
     } catch (error) {
       console.error("Failed to add reply:", error);
       setAlertInfo({
@@ -1485,7 +1665,7 @@ export default function SocialNetworkFeed() {
 
     // Jika belum ada data replies, fetch dari API
     if (!allReplies[commentId] || allReplies[commentId].length === 0) {
-      await fetchReplies(commentId);
+      await fetchReplies(commentId,isCompanyPost ? true : false);
     }
 
     // Toggle expanded state
@@ -1495,9 +1675,12 @@ export default function SocialNetworkFeed() {
     }));
   };
 
-  const handleLikePost = async (postId, isCurrentlyLiked) => {
+  const handleLikePost = async (postId, isCurrentlyLiked, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost
+        ? `/api/company-posts/${postId}/like`
+        : `/api/post-actions/${postId}/like`;
 
       // Optimistic UI update
       setPosts((prevPosts) =>
@@ -1517,12 +1700,12 @@ export default function SocialNetworkFeed() {
 
       // Send request to backend
       if (isCurrentlyLiked) {
-        await axios.delete(`${apiUrl}/api/post-actions/${postId}/like`, {
+        await axios.delete(`${apiUrl}${endPoint}`, {
           headers: { Authorization: `Bearer ${userToken}` },
         });
       } else {
         await axios.post(
-          `${apiUrl}/api/post-actions/${postId}/like`,
+          `${apiUrl}${endPoint}`,
           {},
           { headers: { Authorization: `Bearer ${userToken}` } }
         );
@@ -1550,10 +1733,13 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeletePost = async (postId) => {
+  const handleDeletePost = async (postId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
-      await axios.delete(`${apiUrl}/api/posts/${postId}`, {
+      const endPoint = isCompanyPost
+        ? `/api/company-posts/${postId}/comments`
+        : `/api/posts/${postId}`;
+      await axios.delete(`${apiUrl}${endPoint}`, {
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
@@ -2034,7 +2220,7 @@ export default function SocialNetworkFeed() {
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteComment(selectedComment.id)}
+                  onClick={() => handleDeleteComment(selectedComment.id,selectedComment.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Comment
@@ -2099,7 +2285,7 @@ export default function SocialNetworkFeed() {
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteReply(selectedReply.id)}
+                  onClick={() => handleDeleteReply(selectedReply.id,selectedReply.isCompanyPost)}
                 >
                   <X size={16} className="mr-2" />
                   Delete Reply
@@ -2138,13 +2324,14 @@ export default function SocialNetworkFeed() {
     );
   };
 
-  const handleUpdateReply = async (replyId) => {
+  const handleUpdateReply = async (replyId,isCompanyPost) => {
     if (!replyId || !replyText.trim()) return;
 
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
       await axios.put(
-        `${apiUrl}/api/comments/${replyId}`,
+       endPoint ,
         { content: replyText },
         {
           headers: {
@@ -2188,7 +2375,7 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeleteReply = async (replyId) => {
+  const handleDeleteReply = async (replyId,isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
       if (!userToken) {
@@ -2223,7 +2410,7 @@ export default function SocialNetworkFeed() {
             if (comment.id === parentCommentId) {
               return {
                 ...comment,
-                repliesCount: (comment.repliesCount || 1) - 1,
+                repliesCount: (comment.repliesCount || 1) - 1, 
               };
             }
             return comment;
@@ -2233,7 +2420,8 @@ export default function SocialNetworkFeed() {
       });
 
       // Send delete request
-      await axios.delete(`${apiUrl}/api/comments/${replyId}`, {
+      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
+      await axios.delete(endPoint, {
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
@@ -2301,23 +2489,23 @@ export default function SocialNetworkFeed() {
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = async (commentId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
+      const endPoint = isCompanyPost
+        ? `/api/company-post-comments/${commentId}`
+        : `/api/comments/${commentId}`;
       if (!userToken) {
         throw new Error("No authentication token found");
       }
 
       // Gunakan endpoint yang sesuai dengan backend
-      const response = await axios.delete(
-        `${apiUrl}/api/comments/${commentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.delete(`${apiUrl}${endPoint}`, {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (response.status >= 200 && response.status < 300) {
         // Update state komentar
@@ -2383,57 +2571,77 @@ export default function SocialNetworkFeed() {
     setShowCommentOptions(true);
   };
 
-  const handleUpdateComment = async (commentId) => {
-    if (!commentId || !commentText.trim()) return;
+  const handleUpdateComment = async (commentId, isCompanyPost) => {
+  if (!commentId || !commentText.trim()) return;
 
-    try {
-      const userToken = localStorage.getItem("token");
-      await axios.put(
-        `${apiUrl}/api/comments/${commentId}`,
-        { content: commentText },
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        }
-      );
+  const userToken = localStorage.getItem("token");
+  const endPoint = isCompanyPost
+    ? `${apiUrl}/api/company-post-comments/${commentId}`
+    : `${apiUrl}/api/comments/${commentId}`;
 
-      // Update comments state
-      setComments((prev) => {
-        const updatedComments = { ...prev };
-        if (updatedComments[currentPostId]) {
-          updatedComments[currentPostId] = updatedComments[currentPostId].map(
-            (comment) => {
-              if (comment.id === commentId) {
-                return {
-                  ...comment,
-                  content: commentText,
-                };
-              }
-              return comment;
-            }
-          );
-        }
-        return updatedComments;
-      });
+    console.log("Mengirim update:", {
+  id: commentId,
+  content: commentText,
+});
 
-      // Reset state
-      setEditingCommentId(null);
-      setCommentText("");
-      setAlertInfo({
-        show: true,
-        type: "success",
-        message: "Comment updated successfully!",
-      });
-    } catch (error) {
-      console.error("Failed to update post:", error);
-      setAlertInfo({
-        show: true,
-        type: "error",
-        message: "Failed to update comment. Please try again.",
-      });
-    }
-  };
+
+  try {
+    // Kirim update ke backend
+    await axios.put(
+      endPoint,
+      { content: commentText },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    // Update state komentar di React
+    setComments((prev) => {
+      const updated = { ...prev };
+      if (updated[currentPostId]) {
+        updated[currentPostId] = updated[currentPostId].map((comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              content: commentText,
+            };
+          }
+          return comment;
+        });
+      }
+
+      // ✅ Sync juga ke localStorage
+      if (updated[currentPostId]) {
+        localStorage.setItem(
+          `comments_${currentPostId}`,
+          JSON.stringify(updated[currentPostId])
+        );
+      }
+
+      return updated;
+    });
+
+    // Reset UI state
+    setEditingCommentId(null);
+    setCommentText("");
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Comment updated successfully!",
+    });
+
+  } catch (error) {
+    console.error("Failed to update comment:", error);
+    setAlertInfo({
+      show: true,
+      type: "error",
+      message: "Failed to update comment. Please try again.",
+    });
+  }
+};
+
 
   const handleOpenShowcase = async (commentId) => {
     if (!commentId) {
@@ -2556,6 +2764,23 @@ export default function SocialNetworkFeed() {
     setShowReportModal(true);
   };
 
+  // Perbaikan untuk penggabungan posts
+  const combinedPosts = [
+    // Regular posts dengan prefix untuk memastikan uniqueness
+    ...posts.map((post) => ({
+      ...post,
+      isCompanyPost: false,
+      uniqueId: `user-${post.id}`, // Tambahkan unique identifier
+      postType: "user",
+    })),
+    // Company posts dengan prefix berbeda
+    ...postCompany.map((post) => ({
+      ...post,
+      isCompanyPost: true,
+      uniqueId: `company-${post.id}`, // Tambahkan unique identifier
+      postType: "company",
+    })),
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   return (
     <div className="flex flex-col px-4 py-4 md:flex-row bg-gray-50 md:px-6 lg:px-12 xl:px-32 md:py-6">
       {renderShowcase()}
@@ -2952,27 +3177,37 @@ export default function SocialNetworkFeed() {
             <div className="py-4 text-center">Loading post...</div>
           ) : (
             <>
-              {posts.map((post) => (
+              {combinedPosts.map((post) => (
                 <div
-                  key={post.id}
+                  key={post.uniqueId}
+                  post={post}
                   className="p-4 mb-6 space-y-4 bg-white rounded-lg shadow-md"
                 >
                   {/* Modified header with overlapping images */}
                   <div className="relative pb-3 mb-3 border-b border-gray-200">
                     {/* Group info - as background element */}
-                    {post?.group && (
-                      <Link to={`/groups/${post.group?.id}`}>
-                        {/* Group photo */}
+                    {(post?.group || post?.company) && (
+                      <Link
+                        to={
+                          post.group
+                            ? `/groups/${post.group.id}`
+                            : `/companies/${post.company.id}`
+                        }
+                      >
                         <div className="absolute top-0 left-0 z-0 bottom-2">
-                          {post.group?.image ? (
+                          {post.group?.image || post.company?.logo ? (
                             <img
                               className="object-cover w-12 h-12 border-2 border-gray-300 rounded-lg shadow-md"
                               src={
-                                post.group.image.startsWith("http")
-                                  ? post.group.image
-                                  : `${apiUrl}/${post.group.image}`
+                                (
+                                  post.group?.image || post.company.logo
+                                ).startsWith("http")
+                                  ? post.group.image || post.company.logo
+                                  : `${apiUrl}/${
+                                      post.group.image || post.company.logo
+                                    }`
                               }
-                              alt="Group"
+                              alt={post.group ? "Group" : "Company"}
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = "";
@@ -2982,6 +3217,34 @@ export default function SocialNetworkFeed() {
                             <div className="flex items-center justify-center w-10 h-10 bg-gray-300 border-2 border-white rounded-full shadow-md">
                               <span className="text-xs font-bold text-gray-600">
                                 {post.group?.name?.charAt(0) || "G"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    )}
+
+                    {post?.group && post?.company && (
+                      <Link to={`/companies/${post.company.id}`}>
+                        <div className="absolute top-0 left-0 z-0 bottom-2">
+                          {post.company.logo ? (
+                            <img
+                              className="object-cover w-12 h-12 border-2 border-gray-300 rounded-lg shadow-md"
+                              src={
+                                post.company.logo.startsWith("http")
+                                  ? post.company.logo
+                                  : `${apiUrl}/${post.company.logo}`
+                              }
+                              alt="Company"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "";
+                              }}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center w-10 h-10 bg-gray-300 border-2 border-white rounded-full shadow-md">
+                              <span className="text-xs font-bold text-gray-600">
+                                {post.company.name?.charAt(0) || "C"}
                               </span>
                             </div>
                           )}
@@ -3033,10 +3296,15 @@ export default function SocialNetworkFeed() {
                           <h6
                             className="mb-0 text-sm font-bold cursor-pointer hover:underline"
                             onClick={() =>
-                              fetchUserProfile(post.user.username, post.user.id)
+                              fetchUserProfile(
+                                post.user?.username,
+                                post.user?.id
+                              )
                             }
                           >
-                            {post.user?.name || "Unknown User"}
+                            {post.isCompanyPost
+                              ? post.company?.name || "Company"
+                              : post.user?.name || "Unknown User"}
                           </h6>
                           <div className="flex items-center">
                             <small className="text-xs text-gray-500">
@@ -3045,7 +3313,7 @@ export default function SocialNetworkFeed() {
                             <span className="mx-1 text-xs text-gray-400">
                               •
                             </span>
-                            {post.group && (
+                            {post.group || post.company ? (
                               <small className="text-xs text-gray-500">
                                 <div className="flex items-center text-xs text-gray-500">
                                   <a
@@ -3053,14 +3321,40 @@ export default function SocialNetworkFeed() {
                                     className="text-blue-500 hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      navigate(`/groups/${post.group.id}`);
+                                      navigate(
+                                        post.group
+                                          ? `/groups/${post.group.id}`
+                                          : `/api/company-posts/${post.company.id}`
+                                      );
                                     }}
                                   >
-                                    Posted in {post.group.name}
+                                    Posted in{" "}
+                                    {post.group?.name || post.company?.name}
                                   </a>
                                 </div>
                               </small>
-                            )}
+                            ) : post.isCompanyPost ? (
+                              <small className="text-xs text-gray-500">
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <span className="text-blue-500">✅</span>
+                                  <a
+                                    href="#"
+                                    className="text-blue-500 hover:underline"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigate(
+                                        `/api/company-post/${post.company.id}`
+                                      );
+                                    }}
+                                  >
+                                    Posted in{" "}
+                                    {post.company
+                                      ? post.company.name
+                                      : "Company"}
+                                  </a>
+                                </div>
+                              </small>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -3101,7 +3395,9 @@ export default function SocialNetworkFeed() {
                       <div className="flex items-center space-x-1 cursor-pointer">
                         <span
                           className="text-black"
-                          onClick={() => openCommentModal(post.id)}
+                          onClick={() =>
+                            openCommentModal(post.id, post.isCompanyPost)
+                          }
                         >
                           {post.comments_count || 0} Comment
                         </span>
@@ -3116,7 +3412,13 @@ export default function SocialNetworkFeed() {
                             ? "text-blue-600 bg-blue-50"
                             : "text-black hover:bg-gray-100"
                         }`}
-                        onClick={() => handleLikePost(post.id, post.isLiked)}
+                        onClick={() =>
+                          handleLikePost(
+                            post.id,
+                            post.isLiked,
+                            post.isCompanyPost
+                          )
+                        }
                       >
                         <ThumbsUp size={14} className="mr-2" />
                         Like
@@ -3124,7 +3426,9 @@ export default function SocialNetworkFeed() {
 
                       <button
                         className="flex items-center justify-center w-1/3 py-2 text-black rounded-lg hover:bg-gray-100"
-                        onClick={() => openCommentModal(post.id)}
+                        onClick={() =>
+                          openCommentModal(post.id, post.isCompanyPost)
+                        }
                       >
                         <MessageCircle size={14} className="mr-2" />
                         Comment
@@ -4078,6 +4382,8 @@ export default function SocialNetworkFeed() {
                                       e.stopPropagation();
                                       setSelectedComment(comment);
                                       setShowCommentOptions(true);
+                                                                            setCommentText(comment.content);
+                                      setEditingCommentId(comment.id);
                                     }}
                                   >
                                     <MoreHorizontal size={16} />
@@ -4119,7 +4425,7 @@ export default function SocialNetworkFeed() {
                                 <button
                                   className="px-3 py-1 text-sm text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                   onClick={() =>
-                                    handleUpdateComment(comment.id)
+                                    handleUpdateComment(comment.id,comment.isCompanyPost)
                                   }
                                 >
                                   Update
@@ -4190,7 +4496,9 @@ export default function SocialNetworkFeed() {
                                 onClick={() =>
                                   handleReply(
                                     comment.id,
-                                    replyToUser || comment.user
+                                    replyToUser || comment.user,
+                                    replyText,
+                                    currentPostId
                                   )
                                 }
                               >
@@ -4334,7 +4642,7 @@ export default function SocialNetworkFeed() {
                                               <button
                                                 className="px-2 py-1 text-xs text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                                 onClick={() =>
-                                                  handleUpdateReply(reply.id)
+                                                  handleUpdateReply(reply.id,reply.isCompanyPost)
                                                 }
                                               >
                                                 Update
@@ -4394,7 +4702,8 @@ export default function SocialNetworkFeed() {
                                               onClick={() =>
                                                 handleReply(
                                                   reply.id,
-                                                  replyToUser || reply.user
+                                                  replyToUser || reply.user,
+                                                  reply.isCompanyPost
                                                 )
                                               }
                                             >
@@ -4465,7 +4774,7 @@ export default function SocialNetworkFeed() {
 
                 <button
                   className="px-4 py-2 text-sm text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
-                  onClick={handleAddComment}
+                  onClick={() => handleAddComment()}
                 >
                   Post
                 </button>

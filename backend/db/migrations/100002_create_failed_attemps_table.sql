@@ -1,7 +1,7 @@
 -- SQLBook: Code
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE  failed_attempts (
+CREATE TABLE IF NOT EXISTS failed_attempts (
     id SERIAL PRIMARY KEY,
     ip_address VARCHAR(255) NOT NULL,
     action_type VARCHAR(50) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE  failed_attempts (
 );
 
 -- Add index for faster lookups
-CREATE INDEX  idx_failed_attempts_ip_action 
+CREATE INDEX IF NOT EXISTS idx_failed_attempts_ip_action 
 ON failed_attempts(ip_address, action_type, attempt_time); 
 
 -- +goose StatementEnd
