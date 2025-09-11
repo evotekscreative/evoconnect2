@@ -146,6 +146,7 @@ export default function EditProfile() {
           },
         }
       );
+      
 
       showAlert('success', "Profile updated successfully!");
       return response.data;
@@ -218,15 +219,28 @@ export default function EditProfile() {
     fetchProfile();
   }, []);
 
-  const handleAddSkill = () => {
-    if (newSkill.trim() !== "" && !skills.includes(newSkill.trim())) {
-      const updatedSkills = [...skills, newSkill.trim()];
+const handleAddSkill = () => {
+  if(newSkill == ""){
+    showAlert("error","Skill needed")
+  }
+
+  if (newSkill.trim() !== "") {
+    const newSkillsArray = newSkill
+      .split(",")
+      .map(skill => skill.trim())
+      .filter(skill => skill && !skills.includes(skill)); // buang kosong & duplikat
+
+    if (newSkillsArray.length > 0) {
+      const updatedSkills = [...skills, ...newSkillsArray]; // pakai spread di sini
+      console.log(updatedSkills);
       setSkills(updatedSkills);
       setNewSkill("");
       setShowInput(false);
       showAlert('success', "Skill added successfully");
     }
-  };
+  }
+};
+
 
   const handleRemoveSkill = (index) => {
     const updated = [...skills];
@@ -318,6 +332,37 @@ export default function EditProfile() {
 
   const handleSaveProfile = async () => {
     try {
+          if(headline.length > 100){
+      showAlert("error","headline pass 100 characters");
+      return;
+    }
+
+          if(fullName == ""){
+      showAlert("error","FullName is required");
+      return;
+    }
+
+      if(phone.length > 20){
+      showAlert("error","PhoneNumber pass 20 characters");
+      return;
+    }
+
+      if(location.length > 100){
+      showAlert("error","Location pass 100 characters");
+      return;
+    }
+
+      if(organization.length > 100){
+      showAlert("error","Organization pass 100 characters");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      showAlert("error", "Invalid email format");
+      return;
+} 
       await updateProfile();
       showAlert('success', "Your profile information saved successfully!");
     } catch (error) {
@@ -472,10 +517,11 @@ export default function EditProfile() {
                       <span className="text-gray-400">{about.length}/1500 characters</span>
                     ) : (
                       <>
-                        <span className="text-gray-400">1500/1500 characters</span>
-                          {/* <span className="text-red-500 ml-2">
-                            {about.slice(1500)}
-                          </span> */}
+                        <span className="text-gray-400">{about.length}/1500 characters</span>
+                        <br />
+                          <span className="text-red-500 ml-2">
+                            You cannot add more characters, please remove your text until under 1500 characters !
+                          </span>
                       </>
                     )}
                   </div>

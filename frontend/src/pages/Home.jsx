@@ -1260,12 +1260,11 @@ const commentsWithReplies = await Promise.all(
     };
   })
 );
-
-
       setComments((prev) => ({
         ...prev,
         [postId]: commentsWithReplies,
       }));
+      
     } catch (error) {
       console.error("Failed to fetch comments:", error);
       setCommentError("Failed to load comments");
@@ -1273,6 +1272,7 @@ const commentsWithReplies = await Promise.all(
       setLoadingComments((prev) => ({ ...prev, [postId]: false }));
     }
   };
+
 
   const fetchReplies = async (commentId,isCompanyPost) => {
   console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
@@ -2619,59 +2619,76 @@ const commentsWithReplies = await Promise.all(
   };
 
   const handleUpdateComment = async (commentId, isCompanyPost) => {
-    if (!commentId || !commentText.trim()) return;
-    const endPoint = isCompanyPost
-      ? `${apiUrl}/api/company-post-comments/${commentId}`
-      : `${apiUrl}/api/comments/${commentId}`;
+  if (!commentId || !commentText.trim()) return;
 
-    try {
-      const userToken = localStorage.getItem("token");
-      await axios.put(
-        endPoint,
-        { content: commentText },
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        }
-      );
+  const userToken = localStorage.getItem("token");
+  const endPoint = isCompanyPost
+    ? `${apiUrl}/api/company-post-comments/${commentId}`
+    : `${apiUrl}/api/comments/${commentId}`;
 
-      // Update comments state
-      setComments((prev) => {
-        const updatedComments = { ...prev };
-        if (updatedComments[currentPostId]) {
-          updatedComments[currentPostId] = updatedComments[currentPostId].map(
-            (comment) => {
-              if (comment.id === commentId) {
-                return {
-                  ...comment,
-                  content: commentText,
-                };
-              }
-              return comment;
-            }
-          );
-        }
-        return updatedComments;
-      });
+    console.log("Mengirim update:", {
+  id: commentId,
+  content: commentText,
+});
 
-      // Reset state
-      setEditingCommentId(null);
-      setCommentText("");
-      setAlertInfo({
-        show: true,
-        type: "success",
-        message: "Comment updated successfully!",
-      });
-    } catch (error) {
-      console.error("Failed to update post:", error);
-      setAlertInfo({
-        show: true,
-        type: "error",
-        message: "Failed to update comment. Please try again.",
-      });
-    }
-  };
+
+  try {
+    // Kirim update ke backend
+    await axios.put(
+      endPoint,
+      { content: commentText },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      }
+    );
+
+    // Update state komentar di React
+    setComments((prev) => {
+      const updated = { ...prev };
+      if (updated[currentPostId]) {
+        updated[currentPostId] = updated[currentPostId].map((comment) => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              content: commentText,
+            };
+          }
+          return comment;
+        });
+      }
+
+      // ✅ Sync juga ke localStorage
+      if (updated[currentPostId]) {
+        localStorage.setItem(
+          `comments_${currentPostId}`,
+          JSON.stringify(updated[currentPostId])
+        );
+      }
+
+      return updated;
+    });
+
+    // Reset UI state
+    setEditingCommentId(null);
+    setCommentText("");
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Comment updated successfully!",
+    });
+
+  } catch (error) {
+    console.error("Failed to update comment:", error);
+    setAlertInfo({
+      show: true,
+      type: "error",
+      message: "Failed to update comment. Please try again.",
+    });
+  }
+};
+
 
   const handleOpenShowcase = async (commentId) => {
     if (!commentId) {
@@ -4412,6 +4429,8 @@ const commentsWithReplies = await Promise.all(
                                       e.stopPropagation();
                                       setSelectedComment(comment);
                                       setShowCommentOptions(true);
+                                                                            setCommentText(comment.content);
+                                      setEditingCommentId(comment.id);
                                     }}
                                   >
                                     <MoreHorizontal size={16} />

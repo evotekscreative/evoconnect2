@@ -8,6 +8,7 @@ import (
 	"evoconnect/backend/helper"
 	"evoconnect/backend/model/web"
 	"evoconnect/backend/repository"
+	"log"
 	"mime/multipart"
 	"time"
 
@@ -106,6 +107,10 @@ func (service *UserServiceImpl) UpdateProfile(ctx context.Context, userId uuid.U
 		}
 	} else {
 		user.Skills = sql.NullString{Valid: false}
+	}
+
+	if(request.Skills == nil){
+		log.Printf("belom ada skill ditambah")
 	}
 
 	if request.Socials != nil {

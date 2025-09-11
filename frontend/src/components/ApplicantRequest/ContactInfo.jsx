@@ -76,8 +76,13 @@ const ContactInfo = ({ onNext, isSubmitting, onClose, userData, onContactChange 
         if (onContactChange) {
             onContactChange('linkedin', contactData.linkedin);
         }
+        if((contactData.phone || "").length > 20){
+            window.alert("Phone number must be at least 20 characters!");
+            return;
+        }
         if((contactData.phone || "").length < 10){
-            window.alert("Phone number mus be at least 10 characters!")
+            window.alert("Phone number at least 10 characters!");
+            return;
         }
         onNext();
     };

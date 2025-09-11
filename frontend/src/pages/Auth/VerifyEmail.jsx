@@ -134,8 +134,8 @@ const VerifyEmail = () => {
           <span className="font-semibold">{email}</span>
         </p>
           ) : (
-            // <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline" onClick={localStorage.clear("token")}>login ulang!</Link></p>
-            <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline">login ulang!</Link></p>
+            <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline" onClick={localStorage.clear("token")}>login ulang!</Link></p>
+            // <p className="text-center text-gray-600 mb-6">Email tidak ada,silahkan <Link to="/login" className="text-blue-600 hover:underline">login ulang!</Link></p>
           )
         }
         {(submitted || resendMessage) && (
