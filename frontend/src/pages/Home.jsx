@@ -1680,63 +1680,91 @@ const commentsWithReplies = await Promise.all(
     }));
   };
 
-  const handleLikePost = async (postId, isCurrentlyLiked, isCompanyPost) => {
-    try {
-      const userToken = localStorage.getItem("token");
-      const endPoint = isCompanyPost
-        ? `/api/company-posts/${postId}/like`
-        : `/api/post-actions/${postId}/like`;
+  const handleLikePost = async (postId, isCurrentlyLiked, isCompanyPost = false) => {
+  try {
+    const userToken = localStorage.getItem("token");
+    const endPoint = isCompanyPost
+      ? `/api/company-posts/${postId}/like`
+      : `/api/post-actions/${postId}/like`;
 
-      // Optimistic UI update
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
+    // 🔹 Optimistic update untuk posts (user post)
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
               likes_count: isCurrentlyLiked
-                ? Math.max(post.likes_count - 1, 0) // Pastikan tidak negatif
-                : post.likes_count + 1,
+                ? Math.max(p.likes_count - 1, 0)
+                : p.likes_count + 1,
               isLiked: !isCurrentlyLiked,
-            };
-          }
-          return post;
-        })
-      );
+            }
+          : p
+      )
+    );
 
-      // Send request to backend
-      if (isCurrentlyLiked) {
-        await axios.delete(`${apiUrl}${endPoint}`, {
-          headers: { Authorization: `Bearer ${userToken}` },
-        });
-      } else {
-        await axios.post(
-          `${apiUrl}${endPoint}`,
-          {},
-          { headers: { Authorization: `Bearer ${userToken}` } }
-        );
-      }
-    } catch (error) {
-      console.error("Failed to like post:", error);
-
-      // Rollback on error
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
+    // 🔹 Optimistic update untuk postCompany (company post)
+    setPostCompany((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
               likes_count: isCurrentlyLiked
-                ? post.likes_count + 1
-                : Math.max(post.likes_count - 1, 0), // Pastikan tidak negatif
-              isLiked: isCurrentlyLiked,
-            };
-          }
-          return post;
-        })
-      );
+                ? Math.max(p.likes_count - 1, 0)
+                : p.likes_count + 1,
+              isLiked: !isCurrentlyLiked,
+            }
+          : p
+      )
+    );
 
-      setError("Failed to like post. Please try again.");
+    // 🔹 Request ke backend
+    if (isCurrentlyLiked) {
+      await axios.delete(`${apiUrl}${endPoint}`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+    } else {
+      await axios.post(
+        `${apiUrl}${endPoint}`,
+        {},
+        { headers: { Authorization: `Bearer ${userToken}` } }
+      );
     }
-  };
+  } catch (error) {
+    console.error("Failed to like/unlike post:", error);
+
+    // 🔹 Rollback kalau gagal
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes_count: isCurrentlyLiked
+                ? p.likes_count + 1
+                : Math.max(p.likes_count - 1, 0),
+              isLiked: isCurrentlyLiked,
+            }
+          : p
+      )
+    );
+
+    setPostCompany((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes_count: isCurrentlyLiked
+                ? p.likes_count + 1
+                : Math.max(p.likes_count - 1, 0),
+              isLiked: isCurrentlyLiked,
+            }
+          : p
+      )
+    );
+
+    setError("Failed to like post. Please try again.");
+  }
+};
+
 
   const handleDeletePost = async (postId, isCompanyPost) => {
     try {
