@@ -649,10 +649,12 @@ export default function SocialNetworkFeed() {
       setCurrentUserId(parsedUser.id);
     }
   }, []);
-  const handleOpenPostOptions = (postId) => {
-    setSelectedPostId(postId);
-    setShowPostOptions(true);
-  };
+  const handleOpenPostOptions = (postId, postIsCompany = false) => {
+  setSelectedPostId(postId);
+  setIsCompanyPost(!!postIsCompany);
+  setShowPostOptions(true);
+};
+
 
   const handleClosePostOptions = () => {
     setShowPostOptions(false);
@@ -1919,83 +1921,74 @@ const commentsWithReplies = await Promise.all(
   };
 
   const renderPostOptionsModal = () => {
-    // Cari post yang dipilih
-    const post = posts.find((p) => p.id === selectedPostId);
+  if (!selectedPostId) return null;
 
-    // Jika post tidak ditemukan, jangan render apa-apa
-    if (!post) return null;
+  const post =
+    (isCompanyPost
+      ? postCompany.find((p) => String(p.id) === String(selectedPostId))
+      : null) ||
+    posts.find((p) => String(p.id) === String(selectedPostId)) ||
+    postCompany.find((p) => String(p.id) === String(selectedPostId));
 
-    const isCurrentUserPost = (post.user?.id ?? post.user_id) == currentUserId;
-    const isConnected = connections.some((conn) => conn.id === post.user?.id);
+  if (!post) return null;
 
-    // Cek apakah post ini milik user yang sedang login
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="w-full max-w-xs mx-4 bg-white rounded-lg">
-          <div className="p-4">
-            <h3 className="mb-3 text-lg font-medium">Post Options</h3>
+  const isCompany = !!post.isCompanyPost || isCompanyPost;
+  const isCurrentUserPost = (post.user?.id ?? post.user_id) == currentUserId;
 
-            {/* Opsi untuk post milik user sendiri */}
-            {isCurrentUserPost ? (
-              <>
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
-                  onClick={() => {
-                    handleEditPost(post);
-                    handleClosePostOptions();
-                  }}
-                >
-                  <SquarePen size={16} className="mr-2" />
-                  Edit Post
-                </button>
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeletePost(post.id)}
-                >
-                  <X size={16} className="mr-2" />
-                  Delete Post
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Opsi untuk post user lain */}
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
-                  onClick={() => {
-                    const post = posts.find((p) => p.id === selectedPostId);
-                    if (post && post.user) {
-                      handleReportClick(post.user.id, "post", post.id);
-                    }
-                    handleClosePostOptions();
-                  }}
-                >
-                  <TriangleAlert size={16} className="mr-2" />
-                  Report Post
-                </button>
-                {!isConnected && (
-                  <button
-                    className="flex items-center w-full px-3 py-2 text-left text-blue-500 rounded-md hover:bg-gray-100"
-                    onClick={() => handleConnectWithUser(post.user?.id)}
-                  >
-                    <Users size={16} className="mr-2" />
-                    Connect with User
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-          <div className="p-3 border-t">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-xs mx-4 bg-white rounded-lg">
+        <div className="p-4">
+          <h3 className="mb-3 text-lg font-medium">Post Options</h3>
+
+          {isCurrentUserPost ? (
+            <>
+              <button
+                className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
+                onClick={() => {
+                  handleEditPost(post);
+                  handleClosePostOptions();
+                }}
+              >
+                <SquarePen size={16} className="mr-2" />
+                Edit Post
+              </button>
+
+              <button
+                className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
+                onClick={() => handleDeletePost(post.id, isCompany)}
+              >
+                <X size={16} className="mr-2" />
+                Delete Post
+              </button>
+            </>
+          ) : (
             <button
-              className="w-full py-2 text-gray-500 hover:text-gray-700"
-              onClick={handleClosePostOptions}
+              className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
+              onClick={() => {
+                handleReportClick(post.user?.id, "post", post.id);
+                handleClosePostOptions();
+              }}
             >
-              Close
+              <TriangleAlert size={16} className="mr-2" />
+              Report Post
             </button>
-          </div>
+          )}
+        </div>
+
+        <div className="p-3 border-t">
+          <button
+            className="w-full py-2 text-gray-500 hover:text-gray-700"
+            onClick={handleClosePostOptions}
+          >
+            Cancel
+          </button>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
 
   const renderPostContent = (post) => {
     if (!post.content) return null;
@@ -3434,12 +3427,12 @@ const commentsWithReplies = await Promise.all(
                         </div>
                       </div>
                       <div className="relative ml-auto group">
-                        <button
+                          <button
                           className="p-1 mr-2 bg-gray-100 rounded-full hover:bg-gray-200"
-                          onClick={() => handleOpenPostOptions(post.id)}
-                        >
-                          <Ellipsis size={14} />
-                        </button>
+                          onClick={() => handleOpenPostOptions(post.id, post.isCompanyPost)}
+                          >
+                            <Ellipsis size={14} />
+                          </button>
                         <button className="p-1 bg-gray-100 rounded-full hover:bg-gray-200">
                           {post.visibility === "public" && <Globe size={14} />}
                           {post.visibility === "private" && (
