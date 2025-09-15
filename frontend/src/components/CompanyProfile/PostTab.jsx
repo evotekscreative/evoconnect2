@@ -18,8 +18,7 @@ const PostTab = ({ companyId }) => {
     const [postContent, setPostContent] = useState('');
     const [postVisibility, setPostVisibility] = useState('public');
     const [images, setImages] = useState([]);
-    const fileInputRef = useRef(null);
-
+    const fileInputRef = useRef(null);  
     useEffect(() => {
         fetchPosts();
     }, [companyId]);

@@ -6,17 +6,20 @@ import (
 	"evoconnect/backend/exception"
 	"evoconnect/backend/helper"
 	"evoconnect/backend/model/domain"
+	// "evoconnect/backend/model/entity"
 	"evoconnect/backend/model/web"
 	"evoconnect/backend/repository"
+	"fmt"
 	"math"
 	"time"
-	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
 type JobVacancyServiceImpl struct {
 	SavedJobRepository        repository.SavedJobRepository
+	// MemberCompanyRepository   repository.MemberCompanyRepository
 	JobVacancyRepository      repository.JobVacancyRepository
 	JobApplicationRepository  repository.JobApplicationRepository
 	CompanyRepository         repository.CompanyRepository
@@ -26,6 +29,27 @@ type JobVacancyServiceImpl struct {
 	DB                        *sql.DB
 	Validate                  *validator.Validate
 }
+
+// func MemberHasRole(
+//     ctx context.Context,
+//     repo repository.MemberCompanyRepository,
+//     tx *sql.Tx,
+//     userId, companyId uuid.UUID,
+//     allowedRoles ...entity.MemberCompanyRole, // bisa cek multiple role
+// ) (bool, error) {
+//     member, err := repo.FindByUserAndCompany(ctx, tx, userId, companyId)
+//     if err != nil {
+//         return false, err
+//     }
+
+//     for _, role := range allowedRoles {
+//         if member.Role == entity.MemberCompanyRole(role) {
+//             return true, nil
+//         }
+//     }
+//     return false, nil
+// }
+
 
 func NewJobVacancyService(
 	jobVacancyRepository repository.JobVacancyRepository,
@@ -81,6 +105,12 @@ func (service *JobVacancyServiceImpl) Create(ctx context.Context, request web.Cr
 		}
 		applicationDeadline = &parsedTime
 	}
+	// allowed, err := MemberHasRole(ctx, service.MemberCompanyRepository, tx, creatorId, companyId, entity.RoleAdmin, entity.RoleHRD,)
+
+
+// if !allowed {
+//     panic(exception.NewForbiddenError("You don't have permission to create a job vacancy for this company"))
+// }
 
 	// Create job vacancy domain
 	jobVacancy := domain.JobVacancy{
@@ -680,7 +710,6 @@ func toJobVacancyPublicResponse(jobVacancy domain.JobVacancy) web.JobVacancyPubl
 		Company:             companyInfo,
 	}
 }
-
 
 func (service *JobVacancyServiceImpl) sendNotificationToCompanyFollowers(jobVacancy domain.JobVacancy, creatorId uuid.UUID) {
 	if service.NotificationService == nil {

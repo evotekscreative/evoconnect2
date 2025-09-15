@@ -687,22 +687,6 @@ const handleAccept = async (id) => {
           <div className="space-y-4">
             <NetworkManager />
 
-            
-            <div className="bg-white rounded-xl shadow p-4 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full mx-auto mb-2 overflow-hidden">
-                <Avatar src={Profile} name="Gurdeep" size={80} />
-              </div>
-              <p className="text-xs sm:text-sm font-medium mb-1">
-                Gurdeep, grow your career by following{" "}
-                <span className="text-blue-600">Askbootsrap</span>
-              </p>
-              <p className="text-xs text-gray-500 mb-3">
-                Stay up-to industry trends!
-              </p>
-              <button className="border border-blue-500 text-blue-500 rounded px-3 sm:px-4 py-1 text-xs sm:text-sm font-medium">
-                FOLLOW
-              </button>
-            </div>
           </div>
         </div>
       </div>

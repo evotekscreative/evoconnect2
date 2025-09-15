@@ -35,6 +35,17 @@ type ResetPasswordRequest struct {
 	Token    string `json:"token" validate:"required"`
 	Password string `json:"password" validate:"required,min=6"`
 }
+//response models
+type UserResponse struct {
+    Id              string `json:"id"`
+    Name            string `json:"name"`
+    Username        string `json:"username"`
+    Email           string `json:"email"`
+    Photo           string `json:"photo"`
+    Role            string `json:"role"`
+    MemberCompanyId string `json:"memberCompanyId"`
+    // tambahkan field lain jika perlu
+}
 
 // Response models
 // LoginResponse represents successful login response

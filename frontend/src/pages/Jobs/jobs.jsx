@@ -13,6 +13,7 @@ import RightSidebar from "../../components/Jobs/RightSidebar.jsx";
 import PostJobModal from "../../components/Jobs/PostJobModal.jsx";
 import CreateCompanyModal from "../../components/Jobs/CreateCompanyModal.jsx";
 
+
 const BASE_URL =
   import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
 
@@ -26,6 +27,7 @@ export default function Jobs() {
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [showAllCompanies, setShowAllCompanies] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [jobsPagination, setJobsPagination] = useState({
     page: 1,
@@ -33,6 +35,7 @@ export default function Jobs() {
     totalCount: 0,
     totalPages: 0,
   });
+
 
   const [jobForm, setJobForm] = useState({
     jobTitle: "",
@@ -124,6 +127,17 @@ export default function Jobs() {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+    const filteredJobs = jobs.filter(job => {
+    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         job.company.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch
+  });
+
+    const filteredComp = companies.filter(companie => {
+    const matchesSearch =  companie.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch
+  });
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -269,10 +283,13 @@ export default function Jobs() {
           <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
               <Input
-                placeholder={
-                  activeTab === "job" ? "Search jobs" : "Search companies"
-                }
+                // placeholder={
+                //   activeTab === "job" ? "Search jobs " : "Search companies"
+                // }
+                placeholder={ activeTab === "job" ? "Search jobs " : "Search companies"}
                 className="flex-grow border-none focus:outline-none focus:ring-0 focus:border-transparent px-4 py-2 text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <Search size={20} className="ml-2 mr-2" />
             </div>
@@ -307,8 +324,11 @@ export default function Jobs() {
                 ) : !jobs.length ? (
                   <div>No jobs found.</div>
                 ) : (
-                  jobs.map((job) => <JobCard key={job.id} job={job} />)
+                  filteredJobs.map((job) => (
+                           <JobCard key={job.id} job={job} />
+                            ))
                 )}
+                
               </div>
             ) : (
               <div className="mt-6 space-y-4">
@@ -318,7 +338,7 @@ export default function Jobs() {
                   <div>No companies found.</div>
                 ) : (
                   <>
-                    {(showAllCompanies ? companies : companies.slice(0, 3)).map(
+                    {(filteredComp).map(
                       (company) => (
                         <CompanyCard key={company.id} company={company} />
                       )

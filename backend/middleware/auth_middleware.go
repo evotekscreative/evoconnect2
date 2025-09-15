@@ -56,6 +56,7 @@ func NewUserAuthMiddleware() func(httprouter.Handle) httprouter.Handle {
 			ctx := context.WithValue(request.Context(), "user_id", claims.ID)
 			ctx = context.WithValue(ctx, "user_email", claims.Email)
 			ctx = context.WithValue(ctx, "user_role", claims.Role)
+			ctx = context.WithValue(ctx, "member_company_id", claims.MemberCompanyID)
 
 			// Continue to next handler
 			next(writer, request.WithContext(ctx), params)
