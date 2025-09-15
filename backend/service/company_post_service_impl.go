@@ -42,7 +42,7 @@ func NewCompanyPostService(
 		CompanyPostRepository:     companyPostRepository,
 		MemberCompanyRepository:   memberCompanyRepository,
 		CompanyRepository:         companyRepository,
-		UserRepository:            userRepository,
+		UserRepository:   	         userRepository,
 		CompanyFollowerRepository: companyFollowerRepository,
 		NotificationService:       notificationService,
 		Validate:                  validate,
@@ -69,7 +69,7 @@ func (service *CompanyPostServiceImpl) Create(ctx context.Context, userId uuid.U
 		panic(exception.NewForbiddenError("you are not a member of this company"))
 	}
 
-	if member.Role != entity.RoleSuperAdmin && member.Role != entity.RoleAdmin {
+	if member.Role != entity.RoleSuperAdmin && member.Role != entity.RoleAdmin && member.Role != entity.RoleHRD {
 		panic(exception.NewForbiddenError("you don't have permission to create posts for this company"))
 	}
 

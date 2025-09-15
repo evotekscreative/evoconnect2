@@ -24,6 +24,7 @@ type UserClaims struct {
 	ID    string `json:"user_id"`
 	Email string `json:"email"`
 	Role  string `json:"role"`
+	MemberCompanyID string `json:"memberCompanyId"`
 	jwt.RegisteredClaims
 }
 
@@ -36,7 +37,7 @@ type AdminClaims struct {
 }
 
 // GenerateUserToken creates a JWT token for users
-func GenerateUserToken(userID, email string, duration time.Duration) (string, error) {
+func GenerateUserToken(userID, email string,memberCompanyId string,role string, duration time.Duration) (string, error) {
 	if len(jwtSecret) == 0 {
 		return "", fmt.Errorf("JWT secret not initialized")
 	}
@@ -45,6 +46,7 @@ func GenerateUserToken(userID, email string, duration time.Duration) (string, er
 		ID:    userID,
 		Email: email,
 		Role:  "user",
+		MemberCompanyID: memberCompanyId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -148,11 +150,11 @@ func ValidateAdminToken(tokenString string) (*AdminClaims, error) {
 }
 
 // Legacy functions for backward compatibility
-func GenerateToken(userID, email, role string, duration time.Duration) (string, error) {
+func GenerateToken(userID, email, role string, memberCompanyId string, duration time.Duration) (string, error) {
 	if role == "admin" {
 		return GenerateAdminToken(userID, email, duration)
 	}
-	return GenerateUserToken(userID, email, duration)
+	return GenerateUserToken(userID, email, role, memberCompanyId, duration)
 }
 
 func ValidateToken(tokenString string) (*jwt.MapClaims, error) {

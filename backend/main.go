@@ -119,7 +119,7 @@ func main() {
 	profileViewService := service.NewProfileViewService(db, profileViewRepository, userRepository, notificationService)
 	connectionService := service.NewConnectionService(connectionRepository, userRepository, notificationService, db, groupInvitationRepository, validate)
 	userService := service.NewUserService(userRepository, connectionRepository, profileViewService, db, validate)
-	authService := service.NewAuthService(userRepository, db, validate, jwtSecret)
+	authService := service.NewAuthService(userRepository, memberCompanyRepository, db, validate, jwtSecret)
 
 	// Content-related services
 	blogService := service.NewBlogService(

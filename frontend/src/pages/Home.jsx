@@ -223,7 +223,7 @@ const ReportModal = ({
   );
 };
 
-export default function SocialNetworkFeed() {
+export default function Home() {
   const apiUrl =
     import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
   const clientUrl =
@@ -403,27 +403,25 @@ export default function SocialNetworkFeed() {
         const companyPosts = response.data.data.posts || response.data.data;
         // Format data jika perlu, misalnya tambahkan properti penanda
         // setPostCompany(companyPosts)
-        const formattedCompanyPosts = companyPosts.map((post) => ({
-          id: post.id,
-          content: post.content,
-          images:
-            post.images?.map((img) =>
-              img.startsWith("http") ? img : `${apiUrl}/${img}`
-            ) || [],
-          user: post.creator || {
-            id: post.creator_id,
-            name: "Unknown Creator",
-            initials: "UC",
-            username: "unknown_creator",
-          },
-          group: post.group || null,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          created_at: post.created_at,
-          visibility: post.visibility || "public",
-          isLiked: post.is_liked || false,
-          isCompanyPost: true,
-        }));
+        const formattedCompanyPosts = companyPosts.map((post, idx) => ({
+  id: post.id || post.company_id, // pastikan ada id di level post
+  content: post.company_content || post.content || "", // ambil konten dari company_content
+  images:
+    post.images?.map((img) =>
+      img.startsWith("http") ? img : `${apiUrl}/${img}`
+    ) || [],
+  user: post.user || null, // jika ada user, masukkan, jika tidak null
+  company: post.company || {
+    id: post.company_id,
+    name: post.company_name,
+    logo: post.company_logo,
+  },
+  likes_count: post.likes_count || 0,
+  comments_count: post.comments_count || 0,
+  created_at: post.created_at,
+  visibility: post.visibility || "public",
+  isLiked: post.is_liked || false,
+}));
         console.log();
         setPostCompany(formattedCompanyPosts);
         return formattedCompanyPosts;
@@ -1227,39 +1225,38 @@ export default function SocialNetworkFeed() {
 
       const rawComments = response.data?.data?.comments || [];
 
-const commentsWithReplies = await Promise.all(
-  rawComments.map(async (comment) => {
-    // ✅ Ambil replies dari localStorage, kalau tidak ada, fetch dari API
-    let replies = [];
-    const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
-    
-    if (cachedReplies) {
-      replies = JSON.parse(cachedReplies);
-    } else {
-      // Ambil reply dari API
-      const fetched = await fetchReplies(comment.id, isCompanyPost );
-      replies = Array.isArray(fetched) ? fetched : [];
-    }
+      const commentsWithReplies = await Promise.all(
+        rawComments.map(async (comment) => {
+          // ✅ Ambil replies dari localStorage, kalau tidak ada, fetch dari API
+          let replies = [];
+          const cachedReplies = localStorage.getItem(`replies_${comment.id}`);
 
-    return {
-      id: comment.id || Math.random().toString(36).substr(2, 9),
-      content: comment.content || "",
-      user: comment.user || {
-        name: "Unknown User",
-        initials: "UU",
-        username: "unknown",
-        profile_photo: null,
-      },
-      replies: replies,
-      repliesCount: comment.replies_count || replies.length,
-    };
-  })
-);
+          if (cachedReplies) {
+            replies = JSON.parse(cachedReplies);
+          } else {
+            // Ambil reply dari API
+            const fetched = await fetchReplies(comment.id, isCompanyPost);
+            replies = Array.isArray(fetched) ? fetched : [];
+          }
+
+          return {
+            id: comment.id || Math.random().toString(36).substr(2, 9),
+            content: comment.content || "",
+            user: comment.user || {
+              name: "Unknown User",
+              initials: "UU",
+              username: "unknown",
+              profile_photo: null,
+            },
+            replies: replies,
+            repliesCount: comment.replies_count || replies.length,
+          };
+        })
+      );
       setComments((prev) => ({
         ...prev,
         [postId]: commentsWithReplies,
       }));
-      
     } catch (error) {
       console.error("Failed to fetch comments:", error);
       setCommentError("Failed to load comments");
@@ -1268,10 +1265,13 @@ const commentsWithReplies = await Promise.all(
     }
   };
 
-
-  const fetchReplies = async (commentId,isCompanyPost) => {
-  console.log("🚀 Fetching replies for:", commentId, "Company Post?", isCompanyPost);
-  
+  const fetchReplies = async (commentId, isCompanyPost) => {
+    console.log(
+      "🚀 Fetching replies for:",
+      commentId,
+      "Company Post?",
+      isCompanyPost
+    );
 
     try {
       const userToken = localStorage.getItem("token");
@@ -1320,7 +1320,7 @@ const commentsWithReplies = await Promise.all(
               }
             : null
           : null,
-      isCompanyPost:isCompanyPost
+        isCompanyPost: isCompanyPost,
       }));
 
       setAllReplies((prev) => ({
@@ -1452,7 +1452,7 @@ const commentsWithReplies = await Promise.all(
     loadCachedReplies();
   }, []);
 
-  console.log("comments",comments)
+  console.log("comments", comments);
 
   const openCommentModal = (postId, postIsCompanyPost) => {
     setCurrentPostId(postId);
@@ -1516,7 +1516,12 @@ const commentsWithReplies = await Promise.all(
     }
   };
 
-  const handleReply = async (commentId, replyToUser = null, replyContent = replyText, postId ) => {
+  const handleReply = async (
+    commentId,
+    replyToUser = null,
+    replyContent = replyText,
+    postId
+  ) => {
     if (!commentId || !replyText.trim()) return;
 
     try {
@@ -1536,28 +1541,27 @@ const commentsWithReplies = await Promise.all(
       const response = await axios.post(
         `${apiUrl}${endPoint}`,
         {
-          parent_id:commentId,
-          content: replyContent, 
+          parent_id: commentId,
+          content: replyContent,
         },
         {
           headers: {
             Authorization: `Bearer ${userToken}`,
             "Content-Type": "application/json",
           },
-        },{
-          parent_id:commentId,
+        },
+        {
+          parent_id: commentId,
           content: replyContent,
         }
-
       );
       console.log("Reply response:", response);
-
 
       // Create the new reply object with all necessary data
       if (!response.data || !response.data.data) {
         throw new Error("No reply data received from the server.");
       }
-            const newReply = {  
+      const newReply = {
         ...response.data.data,
         id: response.data.data.id || Math.random().toString(36).substr(2, 9),
         user: {
@@ -1579,7 +1583,7 @@ const commentsWithReplies = await Promise.all(
             }
           : null,
         created_at: new Date().toISOString(),
-        isCompanyPost: isCompanyPost
+        isCompanyPost: isCompanyPost,
       };
 
       // Update state based on whether this is a reply to a comment or another reply
@@ -1665,7 +1669,7 @@ const commentsWithReplies = await Promise.all(
 
     // Jika belum ada data replies, fetch dari API
     if (!allReplies[commentId] || allReplies[commentId].length === 0) {
-      await fetchReplies(commentId,isCompanyPost ? true : false);
+      await fetchReplies(commentId, isCompanyPost ? true : false);
     }
 
     // Toggle expanded state
@@ -2220,7 +2224,12 @@ const commentsWithReplies = await Promise.all(
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteComment(selectedComment.id,selectedComment.isCompanyPost)}
+                  onClick={() =>
+                    handleDeleteComment(
+                      selectedComment.id,
+                      selectedComment.isCompanyPost
+                    )
+                  }
                 >
                   <X size={16} className="mr-2" />
                   Delete Comment
@@ -2285,7 +2294,12 @@ const commentsWithReplies = await Promise.all(
                 </button>
                 <button
                   className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeleteReply(selectedReply.id,selectedReply.isCompanyPost)}
+                  onClick={() =>
+                    handleDeleteReply(
+                      selectedReply.id,
+                      selectedReply.isCompanyPost
+                    )
+                  }
                 >
                   <X size={16} className="mr-2" />
                   Delete Reply
@@ -2324,14 +2338,16 @@ const commentsWithReplies = await Promise.all(
     );
   };
 
-  const handleUpdateReply = async (replyId,isCompanyPost) => {
+  const handleUpdateReply = async (replyId, isCompanyPost) => {
     if (!replyId || !replyText.trim()) return;
 
     try {
       const userToken = localStorage.getItem("token");
-      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
+      const endPoint = isCompanyPost
+        ? `${apiUrl}/api/company-post-comments/${replyId}`
+        : `${apiUrl}/api/comments/${replyId}`;
       await axios.put(
-       endPoint ,
+        endPoint,
         { content: replyText },
         {
           headers: {
@@ -2375,7 +2391,7 @@ const commentsWithReplies = await Promise.all(
     }
   };
 
-  const handleDeleteReply = async (replyId,isCompanyPost) => {
+  const handleDeleteReply = async (replyId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
       if (!userToken) {
@@ -2410,7 +2426,7 @@ const commentsWithReplies = await Promise.all(
             if (comment.id === parentCommentId) {
               return {
                 ...comment,
-                repliesCount: (comment.repliesCount || 1) - 1, 
+                repliesCount: (comment.repliesCount || 1) - 1,
               };
             }
             return comment;
@@ -2420,7 +2436,9 @@ const commentsWithReplies = await Promise.all(
       });
 
       // Send delete request
-      const endPoint = isCompanyPost ? `${apiUrl}/api/company-post-comments/${replyId}` : `${apiUrl}/api/comments/${replyId}`
+      const endPoint = isCompanyPost
+        ? `${apiUrl}/api/company-post-comments/${replyId}`
+        : `${apiUrl}/api/comments/${replyId}`;
       await axios.delete(endPoint, {
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -2572,76 +2590,73 @@ const commentsWithReplies = await Promise.all(
   };
 
   const handleUpdateComment = async (commentId, isCompanyPost) => {
-  if (!commentId || !commentText.trim()) return;
+    if (!commentId || !commentText.trim()) return;
 
-  const userToken = localStorage.getItem("token");
-  const endPoint = isCompanyPost
-    ? `${apiUrl}/api/company-post-comments/${commentId}`
-    : `${apiUrl}/api/comments/${commentId}`;
+    const userToken = localStorage.getItem("token");
+    const endPoint = isCompanyPost
+      ? `${apiUrl}/api/company-post-comments/${commentId}`
+      : `${apiUrl}/api/comments/${commentId}`;
 
     console.log("Mengirim update:", {
-  id: commentId,
-  content: commentText,
-});
-
-
-  try {
-    // Kirim update ke backend
-    await axios.put(
-      endPoint,
-      { content: commentText },
-      {
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      }
-    );
-
-    // Update state komentar di React
-    setComments((prev) => {
-      const updated = { ...prev };
-      if (updated[currentPostId]) {
-        updated[currentPostId] = updated[currentPostId].map((comment) => {
-          if (comment.id === commentId) {
-            return {
-              ...comment,
-              content: commentText,
-            };
-          }
-          return comment;
-        });
-      }
-
-      // ✅ Sync juga ke localStorage
-      if (updated[currentPostId]) {
-        localStorage.setItem(
-          `comments_${currentPostId}`,
-          JSON.stringify(updated[currentPostId])
-        );
-      }
-
-      return updated;
+      id: commentId,
+      content: commentText,
     });
 
-    // Reset UI state
-    setEditingCommentId(null);
-    setCommentText("");
-    setAlertInfo({
-      show: true,
-      type: "success",
-      message: "Comment updated successfully!",
-    });
+    try {
+      // Kirim update ke backend
+      await axios.put(
+        endPoint,
+        { content: commentText },
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
 
-  } catch (error) {
-    console.error("Failed to update comment:", error);
-    setAlertInfo({
-      show: true,
-      type: "error",
-      message: "Failed to update comment. Please try again.",
-    });
-  }
-};
+      // Update state komentar di React
+      setComments((prev) => {
+        const updated = { ...prev };
+        if (updated[currentPostId]) {
+          updated[currentPostId] = updated[currentPostId].map((comment) => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                content: commentText,
+              };
+            }
+            return comment;
+          });
+        }
 
+        // ✅ Sync juga ke localStorage
+        if (updated[currentPostId]) {
+          localStorage.setItem(
+            `comments_${currentPostId}`,
+            JSON.stringify(updated[currentPostId])
+          );
+        }
+
+        return updated;
+      });
+
+      // Reset UI state
+      setEditingCommentId(null);
+      setCommentText("");
+      setAlertInfo({
+        show: true,
+        type: "success",
+        message: "Comment updated successfully!",
+      });
+    } catch (error) {
+      console.error("Failed to update comment:", error);
+      setAlertInfo({
+        show: true,
+        type: "error",
+        message: "Failed to update comment. Please try again.",
+      });
+    }
+  };
 
   const handleOpenShowcase = async (commentId) => {
     if (!commentId) {
@@ -3195,17 +3210,20 @@ const commentsWithReplies = await Promise.all(
                         }
                       >
                         <div className="absolute top-0 left-0 z-0 bottom-2">
-                          {post.group?.image || post.company?.logo ? (
+                          {post.group?.image ||
+                          (post.company && post.company.logo) ? (
                             <img
                               className="object-cover w-12 h-12 border-2 border-gray-300 rounded-lg shadow-md"
                               src={
-                                (
-                                  post.group?.image || post.company.logo
-                                ).startsWith("http")
-                                  ? post.group.image || post.company.logo
-                                  : `${apiUrl}/${
-                                      post.group.image || post.company.logo
-                                    }`
+                                post.group?.image
+                                  ? post.group.image.startsWith("http")
+                                    ? post.group.image
+                                    : `${apiUrl}/${post.group.image}`
+                                  : post.company && post.company.logo
+                                  ? post.company.logo.startsWith("http")
+                                    ? post.company.logo
+                                    : `${apiUrl}/${post.company.logo}`
+                                  : ""
                               }
                               alt={post.group ? "Group" : "Company"}
                               onError={(e) => {
@@ -3216,7 +3234,7 @@ const commentsWithReplies = await Promise.all(
                           ) : (
                             <div className="flex items-center justify-center w-10 h-10 bg-gray-300 border-2 border-white rounded-full shadow-md">
                               <span className="text-xs font-bold text-gray-600">
-                                {post.group?.name?.charAt(0) || "G"}
+                                      {post.group?.name?.charAt(0) || post.company?.name?.charAt(0) || "G"}
                               </span>
                             </div>
                           )}
@@ -3321,11 +3339,7 @@ const commentsWithReplies = await Promise.all(
                                     className="text-blue-500 hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      navigate(
-                                        post.group
-                                          ? `/groups/${post.group.id}`
-                                          : `/api/company-posts/${post.company.id}`
-                                      );
+                                      navigate(`/companies/${post.company.id}`);
                                     }}
                                   >
                                     Posted in{" "}
@@ -4382,7 +4396,7 @@ const commentsWithReplies = await Promise.all(
                                       e.stopPropagation();
                                       setSelectedComment(comment);
                                       setShowCommentOptions(true);
-                                                                            setCommentText(comment.content);
+                                      setCommentText(comment.content);
                                       setEditingCommentId(comment.id);
                                     }}
                                   >
@@ -4425,7 +4439,10 @@ const commentsWithReplies = await Promise.all(
                                 <button
                                   className="px-3 py-1 text-sm text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                   onClick={() =>
-                                    handleUpdateComment(comment.id,comment.isCompanyPost)
+                                    handleUpdateComment(
+                                      comment.id,
+                                      comment.isCompanyPost
+                                    )
                                   }
                                 >
                                   Update
@@ -4642,7 +4659,10 @@ const commentsWithReplies = await Promise.all(
                                               <button
                                                 className="px-2 py-1 text-xs text-white transition-colors bg-blue-500 rounded-lg hover:bg-blue-600"
                                                 onClick={() =>
-                                                  handleUpdateReply(reply.id,reply.isCompanyPost)
+                                                  handleUpdateReply(
+                                                    reply.id,
+                                                    reply.isCompanyPost
+                                                  )
                                                 }
                                               >
                                                 Update

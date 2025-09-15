@@ -61,6 +61,7 @@ import ManageVacancy from "./pages/CompanyDashboard/ManageVacancy.jsx";
 import CompanySetting from "./pages/CompanyDashboard/CompanySetting.jsx";
 import ListApplicants from "./pages/CompanyDashboard/ListApplicants/ListApplicants.jsx";
 import ManageMember from "./pages/CompanyDashboard/ManageMember.jsx";
+import ReportPostPage from "./pages/Admin/Report/ReportPostDetail.jsx";
 
 const router = createBrowserRouter([
   {
@@ -367,6 +368,10 @@ const router = createBrowserRouter([
       {
         path: "report-comment",
         element: <ReportCommentPage />,
+      },
+      {
+        path: "report-post",
+        element: <ReportPostPage />,
       },
       {
         path: "list-company",
