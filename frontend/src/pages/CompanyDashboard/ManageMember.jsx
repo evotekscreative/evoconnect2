@@ -378,9 +378,19 @@ const ManageMember = ({ currentUserRole }) => {
 
   const handleUpdateRole = async () => {
     if (!selectedMember) return;
+    const token = localStorage.getItem("token");
+  const payload = JSON.parse(atob(token.split(".")[1]));
 
+    if(payload.role !== "super_admin"){
+      setAlert({
+        show: true,
+        type: "error",
+        message: "You cannot change your own role to a non-super admin role",
+      })
+        setShowRoleModal(false);
+      return;
+    }
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
         `${
           import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000"
