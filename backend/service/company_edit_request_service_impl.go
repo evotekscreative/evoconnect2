@@ -103,6 +103,17 @@ func (service *CompanyManagementServiceImpl) GetAllCompanies(ctx context.Context
 			userRole = string(memberInfo.Role)
 		}
 
+		  if isMember {
+        // Hanya tambahkan perusahaan jika user adalah member
+        response := web.CompanyDetailResponse{
+            Id: company.Id.String(),
+            Name: company.Name,
+            IsMemberOfCompany: isMember,
+            UserRole: userRole,
+        }
+        companyResponses = append(companyResponses, response)
+    }
+
 		// Check for pending edit requests
 		hasPendingEdit := service.CompanyEditRequestRepository.HasPendingEdit(ctx, tx, company.Id)
 		pendingEditId := ""
@@ -421,6 +432,7 @@ func (service *CompanyManagementServiceImpl) RequestEdit(ctx context.Context, co
 	if company.OwnerId != userId {
 		panic(exception.NewForbiddenError("You don't have permission to edit this company"))
 	}
+	
 
 	// Check if there's already a pending edit request
 	hasPendingEdit := service.CompanyEditRequestRepository.HasPendingEdit(ctx, tx, companyId)
@@ -582,6 +594,7 @@ func (service *CompanyManagementServiceImpl) DeleteCompanyEditRequest(ctx contex
 	if editRequest.Status != domain.CompanyEditRequestStatusPending {
 		panic(exception.NewBadRequestError("You cannot delete a company edit request that has already been reviewed"))
 	}
+	
 
 	// Unmarshal the requested changes JSON string into CompanyEditData struct
 	var requestedData web.CompanyEditData

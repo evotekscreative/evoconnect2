@@ -10,7 +10,6 @@ const Dropdown = ({ selectedCompany, setSelectedCompany, companies }) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate(); // Tambahkan useNavigate di Sidebar
-
   const handleSelectCompany = (company) => {
     setSelectedCompany(company);
     setIsOpen(false);
@@ -24,7 +23,13 @@ const Dropdown = ({ selectedCompany, setSelectedCompany, companies }) => {
     navigate(newPath);
   };
 
-  if (!selectedCompany) return <div>Loading...</div>;
+  if (!selectedCompany || !selectedCompany.id)
+    return (
+      <div>
+        {" "}
+        {companies.length === 0 ? "No companies available" : "Loading..."}
+      </div>
+    );
 
   return (
     <div className="relative z-50">
@@ -43,7 +48,9 @@ const Dropdown = ({ selectedCompany, setSelectedCompany, companies }) => {
       {isOpen && (
         <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50">
           <div className="py-1 max-h-60 overflow-auto">
-            {companies.map((company) => (
+            {companies
+              .filter((companies) => companies.is_member_of_company)
+            .map((company) => (
               <button
                 key={company.id}
                 onClick={() => handleSelectCompany(company)}
@@ -73,35 +80,82 @@ export default function Sidebar() {
   const { selectedCompany, setSelectedCompany, companies, setCompanies } =
     useCompanyStore();
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const response = await fetch(`${apiUrl}/api/my-companies`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const companyList = Array.isArray(data.data) ? data.data : [];
-          setCompanies(companyList);
+    useEffect(() => {
+  const token = localStorage.getItem("token");
+  const payload = JSON.parse(atob(token.split(".")[1]));
 
-          // Set selected company hanya jika id cocok, jika tidak ada id ambil pertama
-          let selected = selectedCompany;
-          if (companyId) {
-          const comapnyFromUrl = companyList.find((c) => c.id === companyId);
-            if(comapnyFromUrl){
-            setSelectedCompany(selected);
-            }
-          }else if(!selectedCompany && companyList.length > 0){
-            setSelectedCompany(companyList[0])
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
-      }
-    };
-    fetchCompanies();
-  }, [companyId, apiUrl, setCompanies, setSelectedCompany]);
+  const fetchMyCompanies = async () => {
+    const res = await fetch(`${apiUrl}/api/my-companies`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    return Array.isArray(data.data)
+      ? data.data
+      : data.data && Array.isArray(data.data.companies)
+      ? data.data.companies
+      : [];
+  };
+
+  const fetchAllCompanies = async () => {
+    const res = await fetch(`${apiUrl}/api/companies`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    
+    return Array.isArray(data.data)
+      ? data.data
+      : data.data && Array.isArray(data.data.companies)
+      ? data.data.companies
+      : [];
+  };
+
+  const fetchCompanies = async () => {
+    let companyList = [];
+    if (payload.role === "super_admin") {
+      companyList = await fetchAllCompanies();
+    } else {
+          const allCompanies = await fetchAllCompanies();
+
+      // deduplikasi berdasarkan id
+      companyList = [...new Map(allCompanies.map(c => [c.id, c])).values()];
+    }
+    setCompanies(companyList);
+
+    // Set selectedCompany seperti sebelumnya
+if (companyId) {
+  const companyFromUrl = companyList.find(
+    (c) => c.id === companyId && c.is_member_of_company
+  );
+  if (companyFromUrl) {
+    setSelectedCompany(companyFromUrl);
+  } else {
+    // fallback ke perusahaan pertama yang user adalah member
+    const firstMemberCompany = companyList.find((c) => c.is_member_of_company);
+    if (firstMemberCompany) {
+      setSelectedCompany(firstMemberCompany);
+      navigate(`/company-dashboard/${firstMemberCompany.id}/manage-post`);
+    }
+  }
+} else if (!selectedCompany && companyList.length > 0) {
+  const firstMemberCompany = companyList.find((c) => c.is_member_of_company);
+  if (firstMemberCompany) {
+    setSelectedCompany(firstMemberCompany);
+    navigate(`/company-dashboard/${firstMemberCompany.id}/manage-post`);
+  }
+}
+    
+  };
+  
+
+  fetchCompanies();
+}, [
+  companyId,
+  apiUrl,
+  setCompanies,
+  setSelectedCompany,
+  selectedCompany,
+  navigate,
+]);
 
   return (
     <>

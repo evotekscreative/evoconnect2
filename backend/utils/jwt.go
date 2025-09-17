@@ -45,7 +45,7 @@ func GenerateUserToken(userID, email string,memberCompanyId string,role string, 
 	claims := UserClaims{
 		ID:    userID,
 		Email: email,
-		Role:  "user",
+		Role:  role,
 		MemberCompanyID: memberCompanyId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
