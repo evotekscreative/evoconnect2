@@ -15,13 +15,35 @@ export default function Tables() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/posts", { credentials: "include" });
-        const data = await res.json();
+        const token = localStorage.getItem("token"); // ambil token dari localStorage
+        if (!token) {
+          console.error("No token found in localStorage");
+          setLoading(false);
+          return;
+        }
 
-        const posts = data.posts || [];
+        // fetch company posts
+        const companyRes = await fetch("/api/company-posts", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+        const companyData = await companyRes.json();
 
-        setCompanyPosts(posts.filter((p) => p.company)); // postingan dengan company
-        setUserPosts(posts.filter((p) => !p.company)); // postingan pribadi user
+        // fetch user posts
+        const userRes = await fetch("/api/posts", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+        const userData = await userRes.json();
+
+        setCompanyPosts(companyData.posts || []);
+        setUserPosts(userData.posts || []);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       } finally {
