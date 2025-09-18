@@ -419,6 +419,14 @@ const router = createBrowserRouter([
     ],
   },
   {
+  path: "/companies/:companyId/details",
+  element: (
+    <ProtectedRoute>
+      <CompanyProfile />
+    </ProtectedRoute>
+  ),
+},
+  {
     path: "/company-dashboard",
     children: [
       {

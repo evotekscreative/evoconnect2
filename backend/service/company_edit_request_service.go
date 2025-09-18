@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"evoconnect/backend/model/domain"
 	"evoconnect/backend/model/web"
-	"github.com/google/uuid"
 	"mime/multipart"
+
+	"github.com/google/uuid"
 )
 
 type CompanyManagementService interface {
@@ -27,4 +29,6 @@ type CompanyManagementService interface {
 	ReviewEditRequest(ctx context.Context, requestId uuid.UUID, reviewerId uuid.UUID, request web.ReviewCompanyEditRequestRequest) web.CompanyEditRequestResponse
 	GetEditRequestStats(ctx context.Context) map[string]int
 	GetCompanyStats(ctx context.Context, companyId uuid.UUID) web.CompanyStatsResponse
+	  GetAllUserPosts() ([]domain.Post, error)
+    GetAllCompanyPosts() ([]domain.CompanyPost, error)
 }

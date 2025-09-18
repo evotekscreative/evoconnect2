@@ -5,6 +5,7 @@ import (
 	"evoconnect/backend/helper"
 	"evoconnect/backend/model/web"
 	"evoconnect/backend/service"
+	"evoconnect/backend/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -22,6 +23,7 @@ func NewAdminCompanyEditController(companyManagementService service.CompanyManag
 		CompanyManagementService: companyManagementService,
 	}
 }
+
 
 func (controller *AdminCompanyEditControllerImpl) GetAllEditRequests(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	limitStr := request.URL.Query().Get("limit")
@@ -158,4 +160,39 @@ func (controller *AdminCompanyEditControllerImpl) GetEditRequestStats(writer htt
 		Status: "OK",
 		Data:   stats,
 	})
+}
+
+// Ambil semua postingan user dan company (khusus admin)
+func (controller *AdminCompanyEditControllerImpl) GetAllPostsForAdmin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+    tokenString := r.Header.Get("Authorization")
+    if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+        tokenString = tokenString[7:]
+    }
+    adminClaims, err := utils.ValidateAdminToken(tokenString)
+    if err != nil || adminClaims.Role != "admin" {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // Ambil semua user post
+    userPosts, err := controller.CompanyManagementService.GetAllUserPosts()
+    if err != nil {
+        http.Error(w, "Failed to fetch user posts", http.StatusInternalServerError)
+        return
+    }
+
+    // Ambil semua company post
+    companyPosts, err := controller.CompanyManagementService.GetAllCompanyPosts()
+    if err != nil {
+        http.Error(w, "Failed to fetch company posts", http.StatusInternalServerError)
+        return
+    }
+
+    result := map[string]interface{}{
+        "user_posts": userPosts,
+        "company_posts": companyPosts,
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    helper.WriteJSON(w, http.StatusOK, result)
 }

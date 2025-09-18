@@ -65,6 +65,29 @@ func NewPostService(
 	}
 }
 
+func (service *PostServiceImpl) GetAllUserPosts() ([]domain.Post, error) {
+    var posts []domain.Post
+    // Gunakan service.DB (bukan db)
+    rows, err := service.DB.Query("SELECT id, user_id, content, images, visibility, created_at, updated_at FROM posts ORDER BY created_at DESC")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    for rows.Next() {
+        var post domain.Post
+        var imagesBytes []byte
+        err := rows.Scan(&post.Id, &post.UserId, &post.Content, &imagesBytes, &post.Visibility, &post.CreatedAt, &post.UpdatedAt)
+        if err != nil {
+            continue
+        }
+        // Unmarshal images jika perlu
+        // ...
+        posts = append(posts, post)
+    }
+    return posts, nil
+}
+
 func (service *PostServiceImpl) Create(ctx context.Context, userId uuid.UUID, request web.CreatePostRequest, files []*multipart.FileHeader) web.PostResponse {
 	// Validate request
 	err := service.Validate.Struct(request)

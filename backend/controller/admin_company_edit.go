@@ -11,4 +11,5 @@ type AdminCompanyEditController interface {
 	GetEditRequestDetail(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	ReviewEditRequest(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	GetEditRequestStats(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	GetAllPostsForAdmin(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }
