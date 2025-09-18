@@ -404,24 +404,24 @@ export default function Home() {
         // Format data jika perlu, misalnya tambahkan properti penanda
         // setPostCompany(companyPosts)
         const formattedCompanyPosts = companyPosts.map((post, idx) => ({
-  id: post.id || post.company_id, // pastikan ada id di level post
-  content: post.company_content || post.content || "", // ambil konten dari company_content
-  images:
-    post.images?.map((img) =>
-      img.startsWith("http") ? img : `${apiUrl}/${img}`
-    ) || [],
-  user: post.user || null, // jika ada user, masukkan, jika tidak null
-  company: post.company || {
-    id: post.company_id,
-    name: post.company_name,
-    logo: post.company_logo,
-  },
-  likes_count: post.likes_count || 0,
-  comments_count: post.comments_count || 0,
-  created_at: post.created_at,
-  visibility: post.visibility || "public",
-  isLiked: post.is_liked || false,
-}));
+          id: post.id || post.company_id, // pastikan ada id di level post
+          content: post.company_content || post.content || "", // ambil konten dari company_content
+          images:
+            post.images?.map((img) =>
+              img.startsWith("http") ? img : `${apiUrl}/${img}`
+            ) || [],
+          user: post.user || null, // jika ada user, masukkan, jika tidak null
+          company: post.company || {
+            id: post.company_id,
+            name: post.company_name,
+            logo: post.company_logo,
+          },
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          created_at: post.created_at,
+          visibility: post.visibility || "public",
+          isLiked: post.is_liked || false,
+        }));
         console.log();
         setPostCompany(formattedCompanyPosts);
         return formattedCompanyPosts;
@@ -3274,7 +3274,7 @@ export default function Home() {
                         to={
                           post.group
                             ? `/groups/${post.group.id}`
-                            : `/companies/${post.company.id}`
+                            : `/companies/${post.company.id}/details`
                         }
                       >
                         <div className="absolute top-0 left-0 z-0 bottom-2">
@@ -3302,7 +3302,9 @@ export default function Home() {
                           ) : (
                             <div className="flex items-center justify-center w-10 h-10 bg-gray-300 border-2 border-white rounded-full shadow-md">
                               <span className="text-xs font-bold text-gray-600">
-                                      {post.group?.name?.charAt(0) || post.company?.name?.charAt(0) || "G"}
+                                {post.group?.name?.charAt(0) ||
+                                  post.company?.name?.charAt(0) ||
+                                  "G"}
                               </span>
                             </div>
                           )}
@@ -3311,7 +3313,7 @@ export default function Home() {
                     )}
 
                     {post?.group && post?.company && (
-                      <Link to={`/companies/${post.company.id}`}>
+                      <Link to={`/companies/${post.company.id}/details`}>
                         <div className="absolute top-0 left-0 z-0 bottom-2">
                           {post.company.logo ? (
                             <img
@@ -3407,10 +3409,20 @@ export default function Home() {
                                     className="text-blue-500 hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      navigate(`/companies/${post.company.id}`);
+                                      if (post.group && post.group.id) {
+                                        navigate(`/groups/${post.group.id}`);
+                                      } else if (
+                                        post.company &&
+                                        post.company.id
+                                      ) {
+                                        navigate(
+                                          `/companies/${post.company.id}/details`
+                                        );
+                                      }
                                     }}
                                   >
                                     Posted in{" "}
+                                    {!post.group ? "Company" : "Group"}{" "}
                                     {post.group?.name || post.company?.name}
                                   </a>
                                 </div>
@@ -3424,9 +3436,16 @@ export default function Home() {
                                     className="text-blue-500 hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      navigate(
-                                        `/api/company-post/${post.company.id}`
-                                      );
+                                      if (post.group && post.group.id) {
+                                        navigate(`/groups/${post.group.id}`);
+                                      } else if (
+                                        post.company &&
+                                        post.company.id
+                                      ) {
+                                        navigate(
+                                          `/companies/${post.company.id}/details`
+                                        );
+                                      }
                                     }}
                                   >
                                     Posted in{" "}

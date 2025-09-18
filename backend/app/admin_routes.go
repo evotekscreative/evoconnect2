@@ -29,6 +29,7 @@ func setupAdminRoutes(
 	router.GET("/api/admin/company-submissions", adminAuth(companySubmissionController.FindAll))
 	router.GET("/api/admin/company-submissions/view/:submissionId", adminAuth(companySubmissionController.FindById))
 	router.PUT("/api/admin/company-submissions/review/:submissionId", adminAuth(companySubmissionController.Review))
+	router.GET("/api/admin/all-posts", adminCompanyEditController.GetAllPostsForAdmin)
 
 	// Company Edit Request Management Routes - Fixed route structure
 	router.GET("/api/admin/company-edit-requests/stats", adminAuth(adminCompanyEditController.GetEditRequestStats))
