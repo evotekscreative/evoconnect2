@@ -129,16 +129,22 @@ export default function Jobs() {
   }, [searchParams]);
 
     const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.company.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch
-  });
+  const jobTitle = job.title || job.position || "";
+  const companyName = job.company?.name || "";
+  const search = searchTerm.toLowerCase();
+  return (
+    jobTitle.toLowerCase().includes(search) ||
+    companyName.toLowerCase().includes(search)
+  );
+});
 
-    const filteredComp = companies.filter(companie => {
-    const matchesSearch =  companie.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch
-  });
-
+const filteredComp = companies
+  .filter((comp) => {
+    const name = comp?.name || "";
+    // Filter berdasarkan search term
+    return name.toLowerCase().includes(searchTerm.toLowerCase());
+  })
+  .filter((comp) => !comp.is_member_of_company); // Hanya tampilkan yang BELUM diikuti user
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSearchParams({ tab });
@@ -193,7 +199,17 @@ export default function Jobs() {
       fileReader.readAsDataURL(file);
     }
   };
-
+const uniqueCompanies = [];
+const seenIds = new Set();
+for (const comp of filteredComp) {
+  // Pastikan data tidak null/undefined dan id ada
+  const compId = comp?.id
+  if (comp && comp.id && !seenIds.has(compId)) {
+    uniqueCompanies.push(comp);
+    seenIds.add(comp.id);
+  }
+}
+console.log("Unique Companies:", uniqueCompanies);
   const handleJobSubmit = (e) => {
     e.preventDefault();
 
@@ -255,7 +271,6 @@ export default function Jobs() {
     setShowCreateCompanyModal(false);
     toast.success("Company created successfully!");
   };
-
   return (
     <>
       <Toaster position="top-right" richColors />
@@ -334,16 +349,16 @@ export default function Jobs() {
               <div className="mt-6 space-y-4">
                 {loadingCompanies ? (
                   <div>Loading companies...</div>
-                ) : !companies.length ? (
+                ) : !uniqueCompanies.length ? (
                   <div>No companies found.</div>
                 ) : (
                   <>
-                    {(filteredComp).map(
+                    {(showAllCompanies ? uniqueCompanies : uniqueCompanies.slice(0, 3)).map(
                       (company) => (
                         <CompanyCard key={company.id} company={company} />
                       )
                     )}
-                    {companies.length > 3 && !showAllCompanies && (
+                    {uniqueCompanies.length > 3 && !showAllCompanies && (
                       <button
                         className="mt-2 px-4 py-2 bg-[#0A66C2] text-white rounded hover:bg-blue-700 w-full"
                         onClick={() => setShowAllCompanies(true)}
