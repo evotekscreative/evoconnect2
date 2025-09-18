@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import axios from "axios"; // ✅ harus diimport
 import Navbar from "../../components/Navbar";
 import CompanyHeader from "../../components/CompanyProfile/CompanyHeader.jsx";
 import CompanyTabs from "../../components/CompanyProfile/CompanyTabs.jsx";
@@ -8,60 +9,50 @@ import CompanyMainContent from "../../components/CompanyProfile/CompanyMainConte
 import CompanyRightSidebar from "../../components/CompanyProfile/CompanyRightSidebar.jsx";
 
 export default function CompanyProfile() {
-  const params = useParams();
-  const companyId = params.companyId;
+  const { companyId } = useParams();
+
   const [activeTab, setActiveTab] = useState("About");
   const [newComment, setNewComment] = useState("");
   const [isFollowingMain, setIsFollowingMain] = useState(false);
   const [isFollowingAmazon, setIsFollowingAmazon] = useState(false);
   const [isConnectedSophia, setIsConnectedSophia] = useState(false);
 
+  const [company, setCompany] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [userReviews, setUserReviews] = useState([]);
+  const [jobs, setJobs] = useState([]); // ✅ jobs dari API kalau ada
+
   const tabs = ["About", "Jobs", "Reviews"];
 
-  const data = [
-    {
-      id: 1,
-      name: "EvoConnect",
-      description: "A leading tech company specializing in innovative solutions",
-      caption: "Connecting the world through technology",
-      industry: "Information Technology",
-      location: "Yogyakarta, Indonesia",
-      employees: "100-500",
-      headquarters: "Jakarta, Indonesia",
-      type: "public",
-      founded: "2025-03-14",
-      specialties: "hahahayy",
-      logo: "https://cdn-icons-png.flaticon.com/512/174/174857.png",
-      website: "https://evoconnect.com",
-      followers: 1412800,
-      connections: 350,
-      Employees: 200,
-      rating: 4.5,
-      jobs: 15
-    }
-  ];
+  // Fetch company data
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${
+            import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000"
+          }/api/companies/${companyId}/details`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-  const jobs = [
-    {
-      id: 1,
-      title: "Software Engineer",
-      company: "EvoConnect",
-      location: "Yogyakarta, Indonesia",
-      employmentType: "Full-time",
-      description: "We are looking for a Software Engineer to join our team.",
-    },
-    {
-      id: 2,
-      title: "UI/UX Designer",
-      company: "Envato",
-      location: "India, Punjab",
-      employmentType: "Full-time",
-      description: "Seeking a talented UI/UX Designer.",
-    },
-  ];
+        setCompany(res.data.data);
+        setJobs(res.data.data?.jobs || []); // jika API ada field jobs
+      } catch (err) {
+        console.error("Error fetching company:", err);
+        setCompany(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const [userReviews, setUserReviews] = useState([]);
+    fetchCompany();
+  }, [companyId]);
 
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+  if (!company) return <div className="text-center mt-10">Company not found</div>;
+
+  // Handle comment submit
   const handleCommentSubmit = () => {
     if (!newComment.trim()) return;
 
@@ -79,32 +70,27 @@ export default function CompanyProfile() {
     setNewComment("");
   };
 
-  const company = data.find((item) => item.id === parseInt(companyId));
-  if (!company) {
-    return <div className="text-center mt-10">Company not found</div>;
-  }
-
   return (
     <>
       <Navbar />
       <div className="bg-gray-100 min-h-screen">
-        <CompanyHeader 
-          company={company} 
-          isFollowingMain={isFollowingMain} 
-          setIsFollowingMain={setIsFollowingMain} 
+        <CompanyHeader
+          company={company}
+          isFollowingMain={isFollowingMain}
+          setIsFollowingMain={setIsFollowingMain}
         />
-        
-        <CompanyTabs 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          tabs={tabs} 
+
+        <CompanyTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          tabs={tabs}
         />
 
         <div className="mt-4 max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <CompanyLeftSidebar company={company} />
-            
-            <CompanyMainContent 
+
+            <CompanyMainContent
               activeTab={activeTab}
               company={company}
               jobs={jobs}
@@ -113,8 +99,8 @@ export default function CompanyProfile() {
               setNewComment={setNewComment}
               handleCommentSubmit={handleCommentSubmit}
             />
-            
-            <CompanyRightSidebar 
+
+            <CompanyRightSidebar
               isFollowingAmazon={isFollowingAmazon}
               setIsFollowingAmazon={setIsFollowingAmazon}
               isConnectedSophia={isConnectedSophia}

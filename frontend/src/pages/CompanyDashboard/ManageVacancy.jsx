@@ -107,38 +107,47 @@ export default function ManageVacancy() {
     }
   };
 
-  const fetchUserCompanies = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${apiUrl}/api/my-companies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  const fetchCompaniesApi = async (apiUrl, token) => {
+  const res = await fetch(`${apiUrl}/api/companies`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
 
-      if (response.data?.data) {
-        setCompanies(
-          Array.isArray(response.data.data) ? response.data.data : []
-        );
+  return Array.isArray(data.data)
+    ? data.data
+    : data.data && Array.isArray(data.data.companies)
+    ? data.data.companies
+    : [];
+};
 
-        const savedCompanyId = localStorage.getItem("companyId");
-        if (
-          savedCompanyId &&
-          response.data.data.some((company) => company.id === savedCompanyId)
-        ) {
-          setFormData((prev) => ({ ...prev, companyId: savedCompanyId }));
-        } else if (response.data.data.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            companyId: response.data.data[0].id,
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch companies:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchUserCompanies = async () => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+  const payload = JSON.parse(atob(token.split(".")[1]));
+
+    const res = await fetch(`${apiUrl}/api/companies`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    let companiesData = Array.isArray(data.data)
+      ? data.data
+      : data.data?.companies || [];
+
+    // deduplikasi berdasarkan id
+    companiesData = [
+      ...new Map(companiesData.map((c) => [c.id, c])).values(),
+    ];
+
+    setCompanies(companiesData);
+  } catch (error) {
+    console.error("Failed to fetch companies:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDeleteSuccess = () => {
     setAlert({
@@ -397,6 +406,18 @@ export default function ManageVacancy() {
       };
 
       const userToken = localStorage.getItem("token");
+        const payload = JSON.parse(atob(userToken.split(".")[1]));
+
+    if(payload.memberCompanyId === "member"){
+      setAlert({
+        show: true,
+        type: "error",
+        message: "You cannot add Vacancy to a non-super admin/hr role",
+      })
+        setShowModal(false);
+      return;
+    }
+
       try {
         const response = await axios.post(
           `${apiUrl}/api/companies/${formData.companyId}/jobs`,
@@ -468,6 +489,7 @@ export default function ManageVacancy() {
       setShowModal(false); // Pastikan modal selalu tertutup setelah submit
     }
   };
+
 
   const DeleteConfirmationModal = ({ onConfirm, onCancel }) => {
     return (

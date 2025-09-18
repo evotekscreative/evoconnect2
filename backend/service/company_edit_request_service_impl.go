@@ -19,6 +19,7 @@ import (
 )
 
 type CompanyManagementServiceImpl struct {
+	
 	CompanyRepository            repository.CompanyRepository
 	CompanyEditRequestRepository repository.CompanyEditRequestRepository
 	CompanyJoinRequestRepository repository.CompanyJoinRequestRepository
@@ -59,6 +60,46 @@ func NewCompanyManagementService(
 		DB:                           db,
 		Validate:                     validate,
 	}
+}
+
+func (s *CompanyManagementServiceImpl) GetAllUserPosts() ([]domain.Post, error) {
+    var posts []domain.Post
+    rows, err := s.DB.Query("SELECT id, user_id, content, images, visibility, created_at, updated_at FROM posts ORDER BY created_at DESC")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var post domain.Post
+        var imagesBytes []byte
+        err := rows.Scan(&post.Id, &post.UserId, &post.Content, &imagesBytes, &post.Visibility, &post.CreatedAt, &post.UpdatedAt)
+        if err != nil {
+            continue
+        }
+        // Unmarshal images jika perlu
+        posts = append(posts, post)
+    }
+    return posts, nil
+}
+
+func (s *CompanyManagementServiceImpl) GetAllCompanyPosts() ([]domain.CompanyPost, error) {
+    var posts []domain.CompanyPost
+    rows, err := s.DB.Query("SELECT id, company_id, content, images, created_at, updated_at FROM company_posts ORDER BY created_at DESC")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    for rows.Next() {
+        var post domain.CompanyPost
+        var imagesBytes []byte
+        err := rows.Scan(&post.Id, &post.CompanyId, &post.Content, &imagesBytes, &post.CreatedAt, &post.UpdatedAt)
+        if err != nil {
+            continue
+        }
+        // Unmarshal images jika perlu
+        posts = append(posts, post)
+    }
+    return posts, nil
 }
 
 func (service *CompanyManagementServiceImpl) GetAllCompanies(ctx context.Context, userId uuid.UUID, limit, offset int) web.CompanyListResponse {
@@ -102,6 +143,17 @@ func (service *CompanyManagementServiceImpl) GetAllCompanies(ctx context.Context
 			isMember = true
 			userRole = string(memberInfo.Role)
 		}
+
+		  if isMember {
+        // Hanya tambahkan perusahaan jika user adalah member
+        response := web.CompanyDetailResponse{
+            Id: company.Id.String(),
+            Name: company.Name,
+            IsMemberOfCompany: isMember,
+            UserRole: userRole,
+        }
+        companyResponses = append(companyResponses, response)
+    }
 
 		// Check for pending edit requests
 		hasPendingEdit := service.CompanyEditRequestRepository.HasPendingEdit(ctx, tx, company.Id)
@@ -421,6 +473,7 @@ func (service *CompanyManagementServiceImpl) RequestEdit(ctx context.Context, co
 	if company.OwnerId != userId {
 		panic(exception.NewForbiddenError("You don't have permission to edit this company"))
 	}
+	
 
 	// Check if there's already a pending edit request
 	hasPendingEdit := service.CompanyEditRequestRepository.HasPendingEdit(ctx, tx, companyId)
@@ -582,6 +635,7 @@ func (service *CompanyManagementServiceImpl) DeleteCompanyEditRequest(ctx contex
 	if editRequest.Status != domain.CompanyEditRequestStatusPending {
 		panic(exception.NewBadRequestError("You cannot delete a company edit request that has already been reviewed"))
 	}
+	
 
 	// Unmarshal the requested changes JSON string into CompanyEditData struct
 	var requestedData web.CompanyEditData

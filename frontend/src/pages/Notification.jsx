@@ -971,7 +971,7 @@ const NotificationPage = () => {
                             {n.isConnectionRequest && (
   <div className="flex gap-2 mt-2">
     {/* Cek apakah n.id sudah ada di dalam daftar connections */}
-    {!connections.some((conn) => conn.id === n.id) && (
+    {n.connectionStatus !== "accepted" && n.connectionStatus !== "rejected" && (
       <>
         <button
           onClick={(e) => {

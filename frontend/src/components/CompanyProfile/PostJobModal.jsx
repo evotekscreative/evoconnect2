@@ -45,8 +45,9 @@ export default function PostJobModal({
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                        <Input
-                            className="w-full"
+                        <input
+                            className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
+                            type="text"
                             placeholder="Enter Job Title"
                             name="jobTitle"
                             value={jobForm.jobTitle}
@@ -57,8 +58,9 @@ export default function PostJobModal({
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                        <Input
-                            className="w-full"
+                        <input
+                            className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
+                            type="text"
                             placeholder="Enter Position"
                             name="position"
                             value={jobForm.position}
@@ -68,8 +70,9 @@ export default function PostJobModal({
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                        <Input
-                            className="w-full"
+                        <input
+                            className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
+                            type="text"
                             placeholder="Enter Location"
                             name="location"
                             value={jobForm.location}
@@ -80,8 +83,9 @@ export default function PostJobModal({
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
-                        <Input
-                            className="w-full"
+                        <input
+                            type="number"
+                            className="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm"
                             placeholder="Enter Salary"
                             name="salary"
                             value={jobForm.salary}

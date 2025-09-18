@@ -2,50 +2,118 @@ import React, { useState } from 'react';
 import { FaStickyNote, FaEye, FaTrash, FaCheck, FaTimes, FaSearch, FaFilter, FaExclamationTriangle } from 'react-icons/fa';
 import Sidebar from '../../../components/Admin/Sidebar/Sidebar.jsx';
 
-const dummyReportPost = [
-  {
-    id: 1,
-    content: 'Postingan yang menyinggung SARA dan mengandung ujaran kebencian terhadap kelompok tertentu',
-    reporter: 'UserAlpha',
-    reason: 'Konten menyinggung',
-    date: '2025-05-24',
-    status: 'pending',
-    severity: 'high'
-  },
-  {
-    id: 2,
-    content: 'Postingan tidak relevan dengan topik diskusi yang sedang berlangsung',
-    reporter: 'UserBeta',
-    reason: 'Off-topic',
-    date: '2025-05-25',
-    status: 'pending',
-    severity: 'low'
-  },
-  {
-    id: 3,
-    content: 'Spam promosi produk yang tidak diinginkan berulang kali',
-    reporter: 'UserGamma',
-    reason: 'Spam',
-    date: '2025-05-26',
-    status: 'resolved',
-    severity: 'medium'
-  },
-  {
-    id: 4,
-    content: 'Konten dewasa yang tidak pantas untuk platform ini',
-    reporter: 'UserDelta',
-    reason: 'Konten tidak pantas',
-    date: '2025-05-27',
-    status: 'pending',
-    severity: 'high'
-  }
-];
+
+const BASE_URL =
+  import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
 
 const ReportPostPage = () => {
-  const [reports, setReports] = useState(dummyReportPost);
+  const [reports, setReports] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+   const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showModal, setShowModal] = useState(false);
+    const [showReasonModal, setShowReasonModal] = useState(false);
+    const [selectedReport, setSelectedReport] = useState(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [takeDownReason, setTakeDownReason] = useState("");
+    console.log(reports)
+
+    const fetchReports = async (page = 1) => {
+      try {
+        setLoading(true);
+        const adminToken = localStorage.getItem("adminToken");
+        const response = await fetch(
+          `${BASE_URL}/api/admin/reports?page=${page}&limit=10&target_type=post`,
+          {
+            headers: {
+              Authorization: `Bearer ${adminToken}`,
+            },
+          }
+        );
+        const data = await response.json();
+  
+        if (data.code === 200) {
+          setReports(data.data.reports || []);
+          setCurrentPage(data.data.current_page);
+        } else {
+          setReports([]);
+        }
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    React.useEffect(() => {
+      fetchReports();
+    }, []);
+  
+    const handleTakeAction = async (action, reason = "") => {
+    if (!selectedReport) return;
+
+    const payload = {
+      status: "accepted",
+      action: action,
+      reason: reason || "post ini 18+",
+    };
+
+    try {
+      setActionLoading(true);
+      const adminToken = localStorage.getItem("adminToken");
+      const response = await fetch(
+        `${BASE_URL}/api/admin/reports/${selectedReport.id}/action`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${adminToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await response.json();
+
+      if (data.code === 200) {
+        alert(
+          `Action taken successfully!\nReport ID: ${data.data.report_id}\nAction: ${data.data.action}\nStatus: ${data.data.status}`
+        );
+        setShowModal(false);
+        setShowReasonModal(false);
+        setTakeDownReason("");
+        fetchReports();
+      } else {
+        alert(`Failed to take action: ${data.status} - ${data.data}`);
+      }
+    } catch (error) {
+      console.error("Error taking action:", error);
+      alert("Error taking action");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTakeDown = () => {
+    setShowModal(false);
+    setShowReasonModal(true);
+  };
+
+  const confirmTakeDown = () => {
+    if (!takeDownReason.trim()) {
+      alert("Please provide a reason for taking down this post");
+      return;
+    }
+    handleTakeAction("take_down", takeDownReason);
+  };
+
+  const openActionModal = (report) => {
+    setSelectedReport(report);
+    setShowModal(true);
+  };
+
+
 
   const getSeverityColor = (severity) => {
     switch (severity) {
@@ -76,12 +144,11 @@ const ReportPostPage = () => {
   };
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = report.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.reporter.toLowerCase().includes(searchTerm.toLowerCase());
+    // const matchesSearch =  report.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
     const matchesSeverity = severityFilter === 'all' || report.severity === severityFilter;
     
-    return matchesSearch && matchesStatus && matchesSeverity;
+    return  matchesStatus && matchesSeverity;
   });
 
   const stats = {
@@ -209,13 +276,10 @@ const ReportPostPage = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Konten</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th> 
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alasan</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tingkat</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
@@ -225,36 +289,23 @@ const ReportPostPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {index + 1}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                        <div className="truncate" title={report.content}>
-                          {report.content}
-                        </div>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2">
                             <span className="text-blue-600 font-medium text-xs">
-                              {report.reporter.charAt(0)}
+                              {/* {report.reporter.charAt(0)} */}
                             </span>
                           </div>
-                          {report.reporter}
+                          {report.reporter_name}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {report.reason}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getSeverityColor(report.severity)}`}>
-                          {report.severity}
-                        </span>
-                      </td>
+                      </td> 
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(report.status)}`}>
                           {report.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {report.date}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
@@ -268,7 +319,7 @@ const ReportPostPage = () => {
                           {report.status === 'pending' && (
                             <>
                               <button 
-                                onClick={() => handleStatusChange(report.id, 'resolved')}
+                                onClick={() => openActionModal(report)}
                                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200"
                                 title="Approve"
                               >
@@ -298,6 +349,72 @@ const ReportPostPage = () => {
                 </tbody>
               </table>
             </div>
+            {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-96">
+              <h3 className="text-lg font-bold mb-4">Take Action on Report</h3>
+              <p className="mb-4">Report Reason: {selectedReport?.reason}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleTakeDown}
+                  disabled={actionLoading}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  Take Down
+                </button>
+                <button
+                  onClick={() => handleTakeAction("reject")}
+                  disabled={actionLoading}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  {actionLoading ? "Processing..." : "Reject"}
+                </button>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showReasonModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg w-96">
+              <h3 className="text-lg font-bold mb-4">Take Down Post</h3>
+              <p className="mb-4">
+                Please provide a reason for taking down this post:
+              </p>
+              <textarea
+                value={takeDownReason}
+                onChange={(e) => setTakeDownReason(e.target.value)}
+                placeholder="Enter reason..."
+                className="w-full p-3 border rounded-lg mb-4 h-24 resize-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={confirmTakeDown}
+                  disabled={actionLoading}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  {actionLoading ? "Processing..." : "Confirm Take Down"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReasonModal(false);
+                    setTakeDownReason("");
+                    setShowModal(true);
+                  }}
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
             
             {filteredReports.length === 0 && (
               <div className="text-center py-12">

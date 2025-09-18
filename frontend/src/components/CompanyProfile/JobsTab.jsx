@@ -61,7 +61,11 @@ export default function JobsTab({ jobs, onJobPost }) {
       photoPreview: null
     });
   };
-
+  // const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = localStorage.getItem("token");
+  console.log("user:", user);
+    
   return (
     <div className="space-y-6">
 
@@ -107,10 +111,21 @@ export default function JobsTab({ jobs, onJobPost }) {
                   {job.salary && (
                     <p className="text-lg font-semibold text-gray-900 mb-2">{job.salary}</p>
                   )}
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors">
+                  <Link to={`/jobs/${job.id}`} className="btn bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors">
                     Apply Now
-                  </button>
+                  </Link>
+                  {/* <button onClick={() => setShowModal(true)} className=" bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors">
+                    Apply Now
+                  </button> */}
                 </div>
+                {(user?.role === "hrd" || user?.role === "admin" || user?.role === "super_admin") && (
+  <button
+    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg mb-6"
+    onClick={() => setShowModal(true)}
+  >
+    Post Job
+  </button>
+)}
               </div>
               
               <p className="text-gray-700 mb-4 line-clamp-2">{job.description}</p>

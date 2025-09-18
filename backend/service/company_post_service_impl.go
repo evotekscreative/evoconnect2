@@ -42,13 +42,33 @@ func NewCompanyPostService(
 		CompanyPostRepository:     companyPostRepository,
 		MemberCompanyRepository:   memberCompanyRepository,
 		CompanyRepository:         companyRepository,
-		UserRepository:            userRepository,
+		UserRepository:   	         userRepository,
 		CompanyFollowerRepository: companyFollowerRepository,
 		NotificationService:       notificationService,
 		Validate:                  validate,
 	}
 }
+func (service *CompanyPostServiceImpl) GetAllCompanyPosts() ([]domain.CompanyPost, error) {
+    var posts []domain.CompanyPost
+    rows, err := service.DB.Query("SELECT id, company_id, content, images, created_at, updated_at FROM company_posts ORDER BY created_at DESC")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
+    for rows.Next() {
+        var post domain.CompanyPost
+        var imagesBytes []byte
+        err := rows.Scan(&post.Id, &post.CompanyId, &post.Content, &imagesBytes, &post.CreatedAt, &post.UpdatedAt)
+        if err != nil {
+            continue
+        }
+        // Unmarshal images jika perlu
+        // ...
+        posts = append(posts, post)
+    }
+    return posts, nil
+}
 func (service *CompanyPostServiceImpl) Create(ctx context.Context, userId uuid.UUID, request web.CreateCompanyPostRequest, files []*multipart.FileHeader) web.CompanyPostResponse {
 	err := service.Validate.Struct(request)
 	helper.PanicIfError(err)
@@ -69,7 +89,7 @@ func (service *CompanyPostServiceImpl) Create(ctx context.Context, userId uuid.U
 		panic(exception.NewForbiddenError("you are not a member of this company"))
 	}
 
-	if member.Role != entity.RoleSuperAdmin && member.Role != entity.RoleAdmin {
+	if member.Role != entity.RoleSuperAdmin && member.Role != entity.RoleAdmin && member.Role != entity.RoleHRD {
 		panic(exception.NewForbiddenError("you don't have permission to create posts for this company"))
 	}
 

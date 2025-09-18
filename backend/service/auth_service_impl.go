@@ -26,19 +26,21 @@ import (
 )
 
 type AuthServiceImpl struct {
-	UserRepository repository.UserRepository
-	DB             *sql.DB
-	Validate       *validator.Validate
-	JWTSecret      string
-	CurrentTx      *sql.Tx
+	UserRepository          repository.UserRepository
+	MemberCompanyRepository repository.MemberCompanyRepository
+	DB                      *sql.DB
+	Validate                *validator.Validate
+	JWTSecret               string
+	CurrentTx               *sql.Tx
 }
 
-func NewAuthService(userRepository repository.UserRepository, db *sql.DB, validate *validator.Validate, jwtSecret string) AuthService {
+func NewAuthService(userRepository repository.UserRepository, memberCompanyRepository repository.MemberCompanyRepository, db *sql.DB, validate *validator.Validate, jwtSecret string) AuthService {
 	return &AuthServiceImpl{
-		UserRepository: userRepository,
-		DB:             db,
-		Validate:       validate,
-		JWTSecret:      jwtSecret,
+		UserRepository:          userRepository,
+		MemberCompanyRepository: memberCompanyRepository,
+		DB:                      db,
+		Validate:                validate,
+		JWTSecret:               jwtSecret,
 	}
 }
 
@@ -114,6 +116,7 @@ func (service *AuthServiceImpl) GoogleAuth(ctx context.Context, request web.Goog
 		jwtToken, err := utils.GenerateToken(
 			updatedUser.Id.String(),
 			updatedUser.Email,
+			"",
 			"user",
 			time.Hour*24*7, // 7 days
 		)
@@ -155,6 +158,7 @@ func (service *AuthServiceImpl) GoogleAuth(ctx context.Context, request web.Goog
 	jwtToken, err := utils.GenerateToken(
 		savedUser.Id.String(),
 		savedUser.Email,
+		"",
 		"user",
 		time.Hour*24*7, // 7 days
 	)
@@ -308,6 +312,8 @@ func (service *AuthServiceImpl) Register(ctx context.Context, request web.Regist
 	jwtToken, err := utils.GenerateUserToken(
 		user.Id.String(),
 		user.Email,
+		"",
+		"user",
 		time.Hour*24*7, // 7 days
 	)
 	helper.PanicIfError(err)
@@ -337,10 +343,24 @@ func (service *AuthServiceImpl) Login(ctx context.Context, request web.LoginRequ
 		panic(exception.NewUnauthorizedError("Invalid credentials"))
 	}
 
+	// Ambil data member perusahaan user
+	memberCompanies, _, err := service.MemberCompanyRepository.FindByUserID(ctx, tx, user.Id, 1, 0)
+	var role, memberCompanyId string
+	if err != nil || len(memberCompanies) == 0 {
+		// Jika user belum jadi member perusahaan, bisa default ke "user"
+		role = "user"
+		memberCompanyId = ""
+	} else {
+		role = string(memberCompanies[0].Role) // misal "hrd"
+		memberCompanyId = memberCompanies[0].CompanyID.String()
+	}
+
 	// Generate JWT token using the new utility function
 	token, err := utils.GenerateUserToken(
 		user.Id.String(),
 		user.Email,
+		role,
+		memberCompanyId,
 		time.Hour*24*7, // 7 days
 	)
 	helper.PanicIfError(err)
