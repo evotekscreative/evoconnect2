@@ -142,28 +142,33 @@ export default function Connection() {
 
   useEffect(() => {
   const fetchCounts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      
-      const response = await axios.get(
-        `${apiUrl}/api/count-request-invitation`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      
-      if (response.data && response.data.data) {
-        setInvitationCount(response.data.data.connection_requests || 0);
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const response = await axios.get(
+      `${apiUrl}/api/count-request-invitation`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    } catch (error) {
-      console.error("Error fetching counts:", error);
+    );
+
+    if (response.data && response.data.data) {
+      setInvitationCount(response.data.data.connection_requests || 0);
     }
-  };
-  
+  } catch (error) {
+    console.error("Error fetching counts:", error);
+  }
+};
+
+  useEffect(() => {
   fetchCounts();
+  const interval = setInterval(fetchCounts, 60000);
+  return () => clearInterval(interval);
+}, []);
+
   
   // Refresh counts every minute
   const interval = setInterval(fetchCounts, 60000);
@@ -341,56 +346,40 @@ export default function Connection() {
   }
 };
 
-const handleAccept = async (id, invitationId) => {
+const handleAccept = async (id) => {
   const token = localStorage.getItem("token");
 
-  try {
-    // Optimistic UI update - immediately show the change
-    setInvitations(invitations.filter((inv) => inv.id !== id));
-    setConnections(
-      connections.map((conn) =>
-        conn.id === id ? { ...conn, status: "connected" } : conn
-      )
-    );
-    setConnectedUsers([
-      ...connectedUsers,
-      { ...invitations.find((inv) => inv.id === id), status: "connected" },
-    ]);
+  // Update status to "processing"
+  setInvitations((prev) =>
+    prev.map((inv) =>
+      inv.id === id ? { ...inv, status: "processing" } : inv
+    )
+  );
 
-    // Then make the API call
+  try {
     await axios.put(
       `${apiUrl}/api/connections/requests/${id}/accept`,
       {},
       { headers: { Authorization: "Bearer " + token } }
     );
 
-    // If needed, you can do a final state sync here
+    setInvitations((prev) => prev.filter((inv) => inv.id !== id));
+
     await fetchPeoples();
-    
-    // After successful acceptance, refresh the count
-    try {
-      const countResponse = await axios.get(
-        `${apiUrl}/api/count-request-invitation`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      
-      if (countResponse.data && countResponse.data.data) {
-        setInvitationCount(countResponse.data.data.connection_requests || 0);
-      }
-    } catch (countError) {
-      console.error("Error refreshing counts:", countError);
-    }
-    
+    await fetchCounts();
+
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Invitation accepted",
+    });
   } catch (error) {
-    // Revert optimistic update if API call fails
-    setInvitations(invitations);
-    setConnections(connections);
-    setConnectedUsers(connectedUsers);
-    
+    setInvitations((prev) =>
+      prev.map((inv) =>
+        inv.id === id ? { ...inv, status: "pending" } : inv
+      )
+    );
+
     setAlertInfo({
       show: true,
       type: "error",
@@ -399,30 +388,46 @@ const handleAccept = async (id, invitationId) => {
   }
 };
 
+
   const handleReject = async (id) => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-    try {
-      await axios.put(
-        `${apiUrl}/api/connections/requests/${id}/reject`,
-        {},
-        { headers: { Authorization: "Bearer " + token } }
-      );
+  // Update status to "processing"
+  setInvitations((prev) =>
+    prev.map((inv) =>
+      inv.id === id ? { ...inv, status: "processing" } : inv
+    )
+  );
 
-      setInvitations(invitations.filter((inv) => inv.id !== id));
-      setAlertInfo({
-        show: true,
-        type: "success",
-        message: "Invitation rejected",
-      });
-    } catch (error) {
-      setAlertInfo({
-        show: true,
-        type: "error",
-        message: error.response?.data?.message || "Failed to reject invitation",
-      });
-    }
-  };
+  try {
+    await axios.put(
+      `${apiUrl}/api/connections/requests/${id}/reject`,
+      {},
+      { headers: { Authorization: "Bearer " + token } }
+    );
+
+    setInvitations((prev) => prev.filter((inv) => inv.id !== id));
+
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Invitation rejected",
+    });
+  } catch (error) {
+    setInvitations((prev) =>
+      prev.map((inv) =>
+        inv.id === id ? { ...inv, status: "pending" } : inv
+      )
+    );
+
+    setAlertInfo({
+      show: true,
+      type: "error",
+      message: error.response?.data?.message || "Failed to reject invitation",
+    });
+  }
+};
+
 
   if (loading) {
     return (

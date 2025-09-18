@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
@@ -9,40 +9,50 @@ import {
   FaBars,
   FaRegCommentDots,
   FaStickyNote,
-  FaChevronLeft,
-  FaChevronRight,
 } from "react-icons/fa";
 import Sidebar from "../../../components/Admin/Sidebar/Sidebar.jsx";
 
-const data = [
-  { name: "Report Blog", value: 2000 },
-  { name: "Report Comment", value: 1200 },
-  { name: "Report User", value: 900 },
-];
-
-const COLORS = ["#A78B71", "#9A9B7C", "#3B3C36"];
+const COLORS = ["#A78B71", "#9A9B7C", "#3B3C36", "#6B705C", "#CB997E", "#DDBEA9"];
 
 const ReportPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const scrollRef = useRef(null);
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -300 : 300,
-        behavior: "smooth",
-      });
-    }
-  };
+  useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        const res = await fetch("/api/admin/report-overview", {
+          credentials: "include", // kalau pakai session/cookie
+        });
+        const json = await res.json();
+
+        // langsung mapping dari data asli user
+        setChartData([
+          { name: "Report User", value: json.user || 0 },
+          { name: "Report Comment", value: json.comment || 0 },
+          { name: "Report Blog", value: json.blog || 0 },
+          { name: "Report Job", value: json.job || 0 },
+          { name: "Report Comment Blog", value: json.commentBlog || 0 },
+          { name: "Report Post", value: json.post || 0 },
+        ]);
+      } catch (err) {
+        console.error("Failed to fetch report data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReportData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar for large screens */}
+      {/* Sidebar */}
       <div className="hidden lg:block w-64">
         <Sidebar />
       </div>
 
-      {/* Sidebar toggle button (visible on small screens) */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           className="text-gray-700 bg-white p-2 rounded shadow"
@@ -52,114 +62,83 @@ const ReportPage = () => {
         </button>
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-auto">
+      {/* Main */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6">Report</h1>
 
-        {/* Scroll Buttons and Cards */}
-        <div className="relative mb-8">
-          {/* Cards */}
-          <div ref={scrollRef}>
-            <div className="flex gap-4 sm:gap-6 w-max min-w-full px-8">
-              <Link to="/admin/report-user">
-                <ReportCard
-                  icon={<FaUserAlt />}
-                  title="Report User"
-                  count="20.000"
-                />
-              </Link>
-              <Link to="/admin/report-comment">
-                <ReportCard
-                  icon={<FaCommentDots />}
-                  title="Report Comment"
-                  count="12.000"
-                />
-              </Link>
-              <Link to="/admin/report-blog">
-                <ReportCard
-                  icon={<FaFileAlt />}
-                  title="Report Blog"
-                  count="8.000"
-                />
-              </Link>
-              <ReportCard
-                icon={<FaBriefcase />}
-                title="Report Job"
-                count="7.000"
-              />
-              <ReportCard
-                icon={<FaRegCommentDots />}
-                title="Report Comment Blog"
-                count="6.000"
-              />
-              <Link to="/admin/report-post">
-                <ReportCard
-                  icon={<FaStickyNote />}
-                  title="Report Post"
-                  count="10.000"
-                />
-              </Link>
-            </div>
-          </div>
+        {/* Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+          <Link to="/admin/report-user">
+            <ReportCard icon={<FaUserAlt />} title="Report User" count={chartData[0]?.value} />
+          </Link>
+          <Link to="/admin/report-comment">
+            <ReportCard icon={<FaCommentDots />} title="Report Comment" count={chartData[1]?.value} />
+          </Link>
+          <Link to="/admin/report-blog">
+            <ReportCard icon={<FaFileAlt />} title="Report Blog" count={chartData[2]?.value} />
+          </Link>
+          <ReportCard icon={<FaBriefcase />} title="Report Job" count={chartData[3]?.value} />
+          <ReportCard icon={<FaRegCommentDots />} title="Report Comment Blog" count={chartData[4]?.value} />
+          <Link to="/admin/report-post">
+            <ReportCard icon={<FaStickyNote />} title="Report Post" count={chartData[5]?.value} />
+          </Link>
         </div>
 
-        {/* Chart Section */}
-        <div className="bg-black rounded-xl p-4 sm:p-6 w-full max-w-full lg:max-w-xl mx-auto">
-          <h2 className="text-white text-lg font-semibold mb-4">
-            Report Overview
-          </h2>
-          <div className="w-full h-[200px] sm:h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip />
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, value }) => `${name} (${value})`}
-                >
-                  {data.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-white mt-4 space-y-1">
-            {data.map((item, idx) => (
-              <p key={idx} className="text-sm">
-                <span
-                  className="inline-block w-3 h-3 rounded-full mr-2"
-                  style={{ backgroundColor: COLORS[idx] }}
-                ></span>
-                {item.name}: <strong>{item.value}</strong>
-              </p>
-            ))}
-          </div>
+        {/* Chart */}
+        <div className="bg-white rounded-xl shadow p-6 w-full">
+          <h2 className="text-gray-800 text-lg font-semibold mb-4">Report Overview</h2>
+          {loading ? (
+            <p>Loading chart...</p>
+          ) : (
+            <>
+              <div className="w-full h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip />
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, value }) => `${name} (${value})`}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 space-y-1">
+                {chartData.map((item, idx) => (
+                  <p key={idx} className="text-sm">
+                    <span
+                      className="inline-block w-3 h-3 rounded-full mr-2"
+                      style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                    ></span>
+                    {item.name}: <strong>{item.value}</strong>
+                  </p>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-const ReportCard = ({ icon, title, count }) => {
-  return (
-    <div className="bg-white p-4 sm:p-6 rounded-xl shadow hover:shadow-lg transition-all border border-gray-200 flex flex-col items-start min-w-[220px]">
-      <div className="text-gray-600 text-sm mb-1">Total Report</div>
-      <div className="text-xl sm:text-2xl font-bold mb-2">{count}</div>
-      <div className="flex items-center gap-2 text-base sm:text-lg font-medium">
-        {icon} {title}
-      </div>
+const ReportCard = ({ icon, title, count }) => (
+  <div className="bg-white p-6 rounded-xl shadow hover:shadow-lg transition-all border border-gray-200 flex flex-col items-start">
+    <div className="text-gray-600 text-sm mb-1">Total Report</div>
+    <div className="text-2xl font-bold mb-2">{count ?? "-"}</div>
+    <div className="flex items-center gap-2 text-lg font-medium text-gray-800">
+      {icon} {title}
     </div>
-  );
-};
+  </div>
+);
 
 export default ReportPage;

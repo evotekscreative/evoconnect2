@@ -647,10 +647,12 @@ export default function Home() {
       setCurrentUserId(parsedUser.id);
     }
   }, []);
-  const handleOpenPostOptions = (postId) => {
-    setSelectedPostId(postId);
-    setShowPostOptions(true);
-  };
+  const handleOpenPostOptions = (postId, postIsCompany = false) => {
+  setSelectedPostId(postId);
+  setIsCompanyPost(!!postIsCompany);
+  setShowPostOptions(true);
+};
+
 
   const handleClosePostOptions = () => {
     setShowPostOptions(false);
@@ -1206,7 +1208,12 @@ export default function Home() {
       const cachedComments = localStorage.getItem(`comments_${postId}`);
       if (cachedComments) {
         const parsedComments = JSON.parse(cachedComments);
-        setComments((prev) => ({ ...prev, [postId]: parsedComments }));
+        localStorage.setItem(`comments_${postId}`, JSON.stringify(data.data.comments));
+        setComments((prev) => ({
+        ...prev,
+        [postId]: parsedComments,
+      }));
+
       }
 
       const userToken = localStorage.getItem("token");
@@ -1679,63 +1686,91 @@ export default function Home() {
     }));
   };
 
-  const handleLikePost = async (postId, isCurrentlyLiked, isCompanyPost) => {
-    try {
-      const userToken = localStorage.getItem("token");
-      const endPoint = isCompanyPost
-        ? `/api/company-posts/${postId}/like`
-        : `/api/post-actions/${postId}/like`;
+  const handleLikePost = async (postId, isCurrentlyLiked, isCompanyPost = false) => {
+  try {
+    const userToken = localStorage.getItem("token");
+    const endPoint = isCompanyPost
+      ? `/api/company-posts/${postId}/like`
+      : `/api/post-actions/${postId}/like`;
 
-      // Optimistic UI update
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
+    // 🔹 Optimistic update untuk posts (user post)
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
               likes_count: isCurrentlyLiked
-                ? Math.max(post.likes_count - 1, 0) // Pastikan tidak negatif
-                : post.likes_count + 1,
+                ? Math.max(p.likes_count - 1, 0)
+                : p.likes_count + 1,
               isLiked: !isCurrentlyLiked,
-            };
-          }
-          return post;
-        })
-      );
+            }
+          : p
+      )
+    );
 
-      // Send request to backend
-      if (isCurrentlyLiked) {
-        await axios.delete(`${apiUrl}${endPoint}`, {
-          headers: { Authorization: `Bearer ${userToken}` },
-        });
-      } else {
-        await axios.post(
-          `${apiUrl}${endPoint}`,
-          {},
-          { headers: { Authorization: `Bearer ${userToken}` } }
-        );
-      }
-    } catch (error) {
-      console.error("Failed to like post:", error);
-
-      // Rollback on error
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
+    // 🔹 Optimistic update untuk postCompany (company post)
+    setPostCompany((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
               likes_count: isCurrentlyLiked
-                ? post.likes_count + 1
-                : Math.max(post.likes_count - 1, 0), // Pastikan tidak negatif
-              isLiked: isCurrentlyLiked,
-            };
-          }
-          return post;
-        })
-      );
+                ? Math.max(p.likes_count - 1, 0)
+                : p.likes_count + 1,
+              isLiked: !isCurrentlyLiked,
+            }
+          : p
+      )
+    );
 
-      setError("Failed to like post. Please try again.");
+    // 🔹 Request ke backend
+    if (isCurrentlyLiked) {
+      await axios.delete(`${apiUrl}${endPoint}`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+    } else {
+      await axios.post(
+        `${apiUrl}${endPoint}`,
+        {},
+        { headers: { Authorization: `Bearer ${userToken}` } }
+      );
     }
-  };
+  } catch (error) {
+    console.error("Failed to like/unlike post:", error);
+
+    // 🔹 Rollback kalau gagal
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes_count: isCurrentlyLiked
+                ? p.likes_count + 1
+                : Math.max(p.likes_count - 1, 0),
+              isLiked: isCurrentlyLiked,
+            }
+          : p
+      )
+    );
+
+    setPostCompany((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes_count: isCurrentlyLiked
+                ? p.likes_count + 1
+                : Math.max(p.likes_count - 1, 0),
+              isLiked: isCurrentlyLiked,
+            }
+          : p
+      )
+    );
+
+    setError("Failed to like post. Please try again.");
+  }
+};
+
 
   const handleDeletePost = async (postId, isCompanyPost) => {
     try {
@@ -1890,83 +1925,74 @@ export default function Home() {
   };
 
   const renderPostOptionsModal = () => {
-    // Cari post yang dipilih
-    const post = posts.find((p) => p.id === selectedPostId);
+  if (!selectedPostId) return null;
 
-    // Jika post tidak ditemukan, jangan render apa-apa
-    if (!post) return null;
+  const post =
+    (isCompanyPost
+      ? postCompany.find((p) => String(p.id) === String(selectedPostId))
+      : null) ||
+    posts.find((p) => String(p.id) === String(selectedPostId)) ||
+    postCompany.find((p) => String(p.id) === String(selectedPostId));
 
-    const isCurrentUserPost = (post.user?.id ?? post.user_id) == currentUserId;
-    const isConnected = connections.some((conn) => conn.id === post.user?.id);
+  if (!post) return null;
 
-    // Cek apakah post ini milik user yang sedang login
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="w-full max-w-xs mx-4 bg-white rounded-lg">
-          <div className="p-4">
-            <h3 className="mb-3 text-lg font-medium">Post Options</h3>
+  const isCompany = !!post.isCompanyPost || isCompanyPost;
+  const isCurrentUserPost = (post.user?.id ?? post.user_id) == currentUserId;
 
-            {/* Opsi untuk post milik user sendiri */}
-            {isCurrentUserPost ? (
-              <>
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
-                  onClick={() => {
-                    handleEditPost(post);
-                    handleClosePostOptions();
-                  }}
-                >
-                  <SquarePen size={16} className="mr-2" />
-                  Edit Post
-                </button>
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
-                  onClick={() => handleDeletePost(post.id)}
-                >
-                  <X size={16} className="mr-2" />
-                  Delete Post
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Opsi untuk post user lain */}
-                <button
-                  className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
-                  onClick={() => {
-                    const post = posts.find((p) => p.id === selectedPostId);
-                    if (post && post.user) {
-                      handleReportClick(post.user.id, "post", post.id);
-                    }
-                    handleClosePostOptions();
-                  }}
-                >
-                  <TriangleAlert size={16} className="mr-2" />
-                  Report Post
-                </button>
-                {!isConnected && (
-                  <button
-                    className="flex items-center w-full px-3 py-2 text-left text-blue-500 rounded-md hover:bg-gray-100"
-                    onClick={() => handleConnectWithUser(post.user?.id)}
-                  >
-                    <Users size={16} className="mr-2" />
-                    Connect with User
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-          <div className="p-3 border-t">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-xs mx-4 bg-white rounded-lg">
+        <div className="p-4">
+          <h3 className="mb-3 text-lg font-medium">Post Options</h3>
+
+          {isCurrentUserPost ? (
+            <>
+              <button
+                className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
+                onClick={() => {
+                  handleEditPost(post);
+                  handleClosePostOptions();
+                }}
+              >
+                <SquarePen size={16} className="mr-2" />
+                Edit Post
+              </button>
+
+              <button
+                className="flex items-center w-full px-3 py-2 text-left text-red-500 rounded-md hover:bg-gray-100"
+                onClick={() => handleDeletePost(post.id, isCompany)}
+              >
+                <X size={16} className="mr-2" />
+                Delete Post
+              </button>
+            </>
+          ) : (
             <button
-              className="w-full py-2 text-gray-500 hover:text-gray-700"
-              onClick={handleClosePostOptions}
+              className="flex items-center w-full px-3 py-2 text-left rounded-md hover:bg-gray-100"
+              onClick={() => {
+                handleReportClick(post.user?.id, "post", post.id);
+                handleClosePostOptions();
+              }}
             >
-              Close
+              <TriangleAlert size={16} className="mr-2" />
+              Report Post
             </button>
-          </div>
+          )}
+        </div>
+
+        <div className="p-3 border-t">
+          <button
+            className="w-full py-2 text-gray-500 hover:text-gray-700"
+            onClick={handleClosePostOptions}
+          >
+            Cancel
+          </button>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
 
   const renderPostContent = (post) => {
     if (!post.content) return null;
@@ -2507,6 +2533,46 @@ export default function Home() {
     }
   };
 
+  const handleEditComment = async (commentId, newContent, isCompanyPost) => {
+  try {
+    const userToken = localStorage.getItem("token");
+    const endpoint = isCompanyPost
+      ? `/api/company-post-comments/${commentId}`
+      : `/api/post-comments/${commentId}`;
+
+    const response = await axios.put(
+      `${apiUrl}${endpoint}`,
+      { content: newContent },
+      {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    setAlertInfo({
+      show: true,
+      type: "success",
+      message: "Comment updated successfully!",
+    });
+
+    // 🧠 Hapus cache dan refresh komentar agar edit tersimpan saat refresh
+    localStorage.removeItem(`comments_${currentPostId}`);
+    fetchComments(currentPostId, isCompanyPost);
+
+    setEditingCommentId(null);
+    setCommentText("");
+  } catch (error) {
+    console.error("Failed to update comment:", error);
+    setAlertInfo({
+      show: true,
+      type: "error",
+      message: "Failed to update comment",
+    });
+  }
+};
+
   const handleDeleteComment = async (commentId, isCompanyPost) => {
     try {
       const userToken = localStorage.getItem("token");
@@ -2536,6 +2602,8 @@ export default function Home() {
           }
           return updatedComments;
         });
+        localStorage.removeItem(`comments_${currentPostId}`);
+        fetchComments(currentPostId, isCompanyPost);
 
         // Update jumlah komentar di post
         setPosts((prevPosts) =>
@@ -3392,12 +3460,12 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="relative ml-auto group">
-                        <button
+                          <button
                           className="p-1 mr-2 bg-gray-100 rounded-full hover:bg-gray-200"
-                          onClick={() => handleOpenPostOptions(post.id)}
-                        >
-                          <Ellipsis size={14} />
-                        </button>
+                          onClick={() => handleOpenPostOptions(post.id, post.isCompanyPost)}
+                          >
+                            <Ellipsis size={14} />
+                          </button>
                         <button className="p-1 bg-gray-100 rounded-full hover:bg-gray-200">
                           {post.visibility === "public" && <Globe size={14} />}
                           {post.visibility === "private" && (

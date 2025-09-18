@@ -1267,16 +1267,17 @@ const PostPage = () => {
         });
 
         setPosts((prevPosts) =>
-          prevPosts.map((post) => {
-            if (post.id === currentPostId) {
-              return {
-                ...post,
-                comments_count: (post.comments_count || 1) - 1,
-              };
-            }
-            return post;
-          })
-        );
+  prevPosts.map((post) => {
+    if (post.id === currentPostId) {
+      return {
+        ...post,
+        comments_count: (post.comments_count || 1) - 1,
+      };
+    }
+    return post;
+  })
+);
+
 
         setShowCommentOptions(false);
         setSelectedComment(null);
