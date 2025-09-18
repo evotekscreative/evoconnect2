@@ -22,28 +22,46 @@ export default function Tables() {
           return;
         }
 
+        // Base URL backend (port 8080)
+        const baseUrl = "http://localhost:3000";
+
         // fetch company posts
-        const companyRes = await fetch("/api/company-posts", {
+        const companyRes = await fetch(`${baseUrl}/api/companyPost`, {
           headers: {
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
         });
+
+        if (!companyRes.ok) {
+          const errText = await companyRes.text();
+          throw new Error(
+            `Company posts fetch failed: ${companyRes.status} ${errText}`
+          );
+        }
         const companyData = await companyRes.json();
 
         // fetch user posts
-        const userRes = await fetch("/api/posts", {
+        const userRes = await fetch(`${baseUrl}/api/posts`, {
           headers: {
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           credentials: "include",
         });
+
+        if (!userRes.ok) {
+          const errText = await userRes.text();
+          throw new Error(
+            `User posts fetch failed: ${userRes.status} ${errText}`
+          );
+        }
         const userData = await userRes.json();
 
-        setCompanyPosts(companyData.posts || []);
-        setUserPosts(userData.posts || []);
+        // Pastikan field array sesuai struktur backend (Posts / posts)
+        setCompanyPosts(companyData.posts || companyData.Posts || []);
+        setUserPosts(userData.posts || userData.Posts || []);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       } finally {
