@@ -12,12 +12,51 @@ import Case from "../../../components/Case.jsx";
 
 export default function Dashboard() {
   // ✅ Data real untuk charts
-  const stats = {
-    totalSubmissions: 1,
-    approved: 1,
+  const [stats, setStats] = React.useState({
+    totalSubmissions: 0,
+    approved:  0,
     rejected: 0,
     pending: 0,
+  });
+  const [isLoading, setIsLoading] = React.useState(true);
+  
+    const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+  
+   React.useEffect(() => {
+  let intervalId;
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return;
+      const response = await fetch(`${apiUrl}/api/admin/company-submissions/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) throw new Error(`Failed to fetch stats: ${response.status}`);
+      const data = await response.json();
+      if (data && data.data) {
+        setStats({
+          total: data.data.total || 0,
+          approved: data.data.approved || 0,
+          rejected: data.data.rejected || 0,
+          pending: data.data.pending || 0
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching company stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  fetchStats(); // initial fetch
+  intervalId = setInterval(fetchStats, 10000); // fetch every 10 seconds
+
+  return () => clearInterval(intervalId); // cleanup on unmount
+}, [apiUrl]);
+  
 
   return (
     <>

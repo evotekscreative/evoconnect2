@@ -38,8 +38,8 @@ const ReportUser = () => {
       const data = await response.json();
 
       if (data.code === 200) {
-        setReports(data.data.reports);
-        setCurrentPage(data.data.current_page);
+  setReports(Array.isArray(data.data.reports) ? data.data.reports : []);
+  setCurrentPage(data.data.current_page);
         // setTotalPages(data.data.total_pages);
       }
     } catch (error) {
@@ -149,7 +149,7 @@ const ReportUser = () => {
                     Loading...
                   </td>
                 </tr>
-              ) : reports.length === 0 ? (
+              ) : !reports || reports.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-4 py-8 text-center border">
                     No reports found

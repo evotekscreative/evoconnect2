@@ -1,80 +1,120 @@
-import React, { useEffect, useState } from "react";
-
-// components
-import CardTable from "../../../components/Admin/Cards/CardTable.jsx";
-import AdminNavbar from "../../../components/Admin/Navbars/AdminNavbar.jsx";
-import Sidebar from "../../../components/Admin/Sidebar/Sidebar.jsx";
-import HeaderStats from "../../../components/Admin/Headers/HeaderStats.jsx";
-import FooterAdmin from "../../../components/Admin/Footers/FooterAdmin.jsx";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import Navbar from "../../../components/Admin/Navbars/AdminNavbar";
+import HeaderStats from "../../../components/Admin/Headers/HeaderStats";
+import CardTable from "../../../components/Admin/Cards/CardTable";
+import FooterAdmin from "../../../components/Admin/Footers/FooterAdmin";
+import Sidebar from "../../../components/Admin/Sidebar/Sidebar";
 
 export default function Tables() {
-  const [companyPosts, setCompanyPosts] = useState([]);
-  const [userPosts, setUserPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [combinedPosts, setCombinedPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  const apiUrl = import.meta.env.VITE_APP_BACKEND_URL || "http://localhost:3000";
+
+  const fetchAllAdminPosts = async () => {
+    setLoadingPosts(true);
+    const adminToken = localStorage.getItem("adminToken");
+    const response = await axios.get(`${apiUrl}/api/admin/all-posts`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const userPosts = response.data.user_posts || [];
+    const companyPosts = response.data.company_posts || [];
+
+    // Format user posts
+    const formattedUserPosts = userPosts.map((post) => ({
+      id: post.id,
+      content: post.content,
+      images: post.images?.map((img) =>
+        img.startsWith("http") ? img : `${apiUrl}/${img}`
+      ) || [],
+      user: post.user || {
+        id: post.user_id,
+        name: post.username || post.name || "Post User",
+        username: post.username || "unknown",
+        photo: post.photo || null,
+      },
+      group: post.group || null,
+      company: null,
+      likes_count: post.likes_count || 0,
+      comments_count: post.comments_count || 0,
+      created_at: post.created_at,
+      isLiked: post.is_liked || false,
+      isCompanyPost: false,
+      uniqueId: `user-${post.id}`,
+      postType: "user",
+    }));
+
+    // Format company posts
+    const formattedCompanyPosts = companyPosts.map((post) => ({
+      id: post.id || post.company_id,
+      content: post.company_content || post.content || "",
+      images: post.images?.map((img) =>
+        img.startsWith("http") ? img : `${apiUrl}/${img}`
+      ) || [],
+      user: post.user || null,
+      group: post.group || null,
+      company: post.company || {
+        id: post.company_id,
+        name: post.company_name,
+        logo: post.company_logo,
+      },
+      likes_count: post.likes_count || 0,
+      comments_count: post.comments_count || 0,
+      created_at: post.created_at,
+      isLiked: post.is_liked || false,
+      isCompanyPost: true,
+      uniqueId: `company-${post.id || post.company_id}`,
+      postType: "company",
+    }));
+
+    // Gabungkan dan urutkan
+    const combined = [...formattedUserPosts, ...formattedCompanyPosts].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+    setCombinedPosts(combined);
+    setLoadingPosts(false);
+    console.log("userPosts", userPosts);
+console.log("companyPosts", companyPosts);
+console.log("combined", combined);
+  };
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const token = localStorage.getItem("token"); // ambil token dari localStorage
-        if (!token) {
-          console.error("No token found in localStorage");
-          setLoading(false);
-          return;
-        }
-
-        // fetch company posts
-        const companyRes = await fetch("/api/company-posts", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        const companyData = await companyRes.json();
-
-        // fetch user posts
-        const userRes = await fetch("/api/posts", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        const userData = await userRes.json();
-
-        setCompanyPosts(companyData.posts || []);
-        setUserPosts(userData.posts || []);
-      } catch (err) {
-        console.error("Failed to fetch posts:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
+    fetchAllAdminPosts();
   }, []);
 
-  return (
-    <>
-      <Sidebar />
-      <div className="relative md:ml-64 bg-white min-h-screen">
-        <AdminNavbar />
-        <HeaderStats />
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase();
+  };
 
-        <div className="px-4 md:px-10 mx-auto w-full pt-20 -m-44">
-          {loading ? (
-            <p className="text-center py-10">Loading posts...</p>
-          ) : (
-            <div className="flex flex-wrap mt-4">
-              <div className="w-full mb-12 px-4">
-                <CardTable posts={companyPosts} title="Company Posts" />
-              </div>
-              <div className="w-full mb-12 px-4">
-                <CardTable posts={userPosts} title="User Posts" color="dark" />
-              </div>
-            </div>
-          )}
-          <FooterAdmin />
+  const formatPostTime = (createdAt) => {
+    return new Date(createdAt).toLocaleString();
+  };
+
+  const renderPostContent = (post) => (
+    <div className="mb-4">
+      <p className="text-gray-800">{post.content}</p>
+    </div>
+  );
+
+  const renderPhotoGrid = (images) => {
+    if (!images || images.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <div className="grid grid-cols-2 gap-2">
+          {images.map((image, index) => (
+            <img
+              key={index}
+              src={image.startsWith("http") ? image : `${apiUrl}/${image}`}
+              alt={`Post image ${index + 1}`}
+              className="w-full h-32 object-cover rounded-lg"
+            />
+          ))}
         </div>
       </div>
     );
