@@ -3274,7 +3274,7 @@ export default function Home() {
                         to={
                           post.group
                             ? `/groups/${post.group.id}`
-                            : `/companies/${post.company.id}/details`
+                            : `/company-detail/${post.company.id}`
                         }
                       >
                         <div className="absolute top-0 left-0 z-0 bottom-2">
@@ -3313,7 +3313,7 @@ export default function Home() {
                     )}
 
                     {post?.group && post?.company && (
-                      <Link to={`/companies/${post.company.id}/details`}>
+                      <Link to={`/company-detail/${post.company.id}`}>
                         <div className="absolute top-0 left-0 z-0 bottom-2">
                           {post.company.logo ? (
                             <img
@@ -3416,7 +3416,7 @@ export default function Home() {
                                         post.company.id
                                       ) {
                                         navigate(
-                                          `/companies/${post.company.id}/details`
+                                          `/company-detail/${post.company.id}`
                                         );
                                       }
                                     }}
@@ -3443,7 +3443,7 @@ export default function Home() {
                                         post.company.id
                                       ) {
                                         navigate(
-                                          `/companies/${post.company.id}/details`
+                                          `/company-detail/${post.company.id}`
                                         );
                                       }
                                     }}
